@@ -796,7 +796,7 @@ RANKING RULE (evidence tie-breaker only): EDGAR + RSS convergence (strongest evi
 When multiple signals support the same opportunity, list ALL of them in the contributingSignals array. EDGAR entries in format: "[Company] [FilingType] ([Vertical])". RSS entries in format: "Article Title (Source Name)". Single-RSS-article opportunities are acceptable only if they score 8+ on Buyer Willingness and Quantifiability.
 
 SIX-POINT COMMERCIAL VIABILITY FILTER:
-Score each opportunity against all six criteria (1-10). Only include opportunities scoring 6+ on at least 4 of the 6 criteria.
+Score each opportunity against all six criteria (1-10), scoring EACH criterion independently on its own merits.
 
 1. QUANTIFIABILITY (20%): Can this market be assigned a credible dollar value from company revenues, shipment volumes, or regulatory data? Score 1 if purely conceptual, 10 if multiple public data sources exist.
 
@@ -811,10 +811,22 @@ Score each opportunity against all six criteria (1-10). Only include opportuniti
 6. SEO SEARCHABILITY (10%): Is someone already searching "[Topic] Market Size" or "[Topic] Market Report" with commercial intent? Score 1 if too obscure or too broad, 10 if exact phrase maps to clear buyer search behavior. Score MAX 4 if the topic combines two distinct markets in one phrase (e.g. "AI Infrastructure and Data Center", "Biologics and Cell Gene Therapy") — compound topics do not map to real search queries and will not rank.
 
 COMPOSITE: commercialViabilityScore = round(Q*0.20 + C*0.20 + D*0.15 + S*0.15 + B*0.20 + E*0.10)
-REJECTION RULE: Exclude any opportunity scoring below 5 on Quantifiability or Buyer Willingness.
+INCLUSION GATE: Include an opportunity only if its commercialViabilityScore composite is 6 or higher. Do NOT inflate individual criterion scores to clear this gate — score each honestly and let the composite fall where it lands. Separately, exclude any opportunity scoring below 5 on Quantifiability or Buyer Willingness; those two are non-negotiable for a sellable report.
 
 GROUNDING — MANDATORY, NO FABRICATION:
 Every opportunity MUST trace to a specific signal in the EDGAR or RSS data provided below. Do NOT invent companies, filings, funding rounds, regulations, partnerships, or statistics that are not present in the input. sourceArticleTitle and contributingSignals must be copied from the provided signals, not paraphrased or imagined. Estimated figures such as CAGR must be directional and anchored to drivers visible in the signals — never fabricate precise market sizes, dollar values, or growth rates. If a strong-looking opportunity cannot be grounded in the supplied signals, leave it out.
+
+SCORING DISCIPLINE — CRITICAL FOR RANKING QUALITY:
+These six scores rank the opportunities for a $4,000+ commissioning decision, so they MUST discriminate, not cluster.
+- Use the FULL 1-10 range. Reserve 9-10 for genuinely exceptional and 1-3 for genuinely weak. Do NOT default to 6, 7, or 8.
+- Score each dimension INDEPENDENTLY. Do not let one strong dimension — or your overall confidence that the trend is real — pull the others up. A real opportunity usually has a SPIKY profile (e.g. Buyer Willingness 9 but Competitive Density 4), not a flat 7 across all six.
+- Commercial value and evidence confidence are SEPARATE axes. A well-evidenced trend can still make a commercially weak report (few buyers, no search demand); a thinly-evidenced trend can be commercially strong. Score commercial viability on its own merits, never inflated by how certain you are the trend is real.
+- If most of your opportunities land at the same composite, you are not discriminating hard enough. Spread them so the strongest clearly out-scores the weakest.
+
+CALIBRATION EXAMPLE (illustrative score profiles only — do NOT copy these topics):
+- A niche with surging enterprise procurement and easy market sizing but a crowded competitor field: Buyer Willingness 9, Quantifiability 8, SEO 7, Segmentability 6, CAGR 7, Competitive Density 3 → composite ~7 (include).
+- A broad, well-known but commoditised topic: Buyer Willingness 5, Quantifiability 7, SEO 4 (too generic to rank), Segmentability 5, CAGR 4, Competitive Density 8 → composite ~5 (exclude).
+Note the spiky profiles and full range — that is the level of discrimination expected on every opportunity.
 
 FOR EACH OPPORTUNITY RETURN EXACTLY THESE FIELDS:
 - reportTitle: Full market research report title following this EXACT formula: [Geographic Modifier] + [Product/Technology Modifier] + [Core Subject] + "Market Size, Share & Forecast, ${FORECAST_RANGE}". Geographic modifier MUST be "Global" unless the signal clearly originates from a specific country or region (e.g. "India", "North America", "Asia Pacific"). Example: "Global AI-Powered Offshore Wind Turbine Predictive Maintenance Market Size, Share & Forecast, ${FORECAST_RANGE}". Never omit the geographic modifier. Never omit the forecast year range. CRITICAL TITLE RULE: The Core Subject must describe ONE single, specific market. Never combine two distinct markets into one title using "and", "&", or "/" — these are separate reports with separate buyers. WRONG: "Global AI Infrastructure and Data Center Market" (two markets). WRONG: "Global Biologics and Cell/Gene Therapy Market" (two markets). RIGHT: "Global AI Data Center Market" OR "Global AI Infrastructure Market" — pick the one the signal most directly supports. If a signal touches two adjacent markets, identify which single market has the stronger buyer demand right now and title the report for that market only.
@@ -894,7 +906,7 @@ IMPORTANT: Return a JSON array of 8 to 10 objects, strongest first. Prioritise q
         config: {
           temperature: 0.2,
           maxOutputTokens: 40000,
-          thinkingConfig: { thinkingBudget: 2048 },
+          thinkingConfig: { thinkingBudget: 6144 },
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.ARRAY,
