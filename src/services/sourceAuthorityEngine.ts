@@ -173,12 +173,30 @@ export function normalizeSourceAuthority(
   suggestion: ReportSuggestion
 ): ReportSuggestion {
   const sourceName = suggestion.sourceName?.trim() || "Unknown";
-  const profile = detectSourceProfile(sourceName);
 
   const url = (suggestion.sourceArticleUrl || "").toLowerCase();
+  const anchor = (suggestion.sourceArticleTitle || "").toUpperCase();
+
+  // ── SEC / EDGAR recognition ───────────────────────────────────────────────
+  // EDGAR filings are official, legally-filed corporate disclosures and are the
+  // pipeline's PRIORITY 1 source, but detectSourceProfile() would mark them
+  // "Unknown" (50) because the sourceName is a company name, not a known outlet.
+  // That uniformly suppressed the evidence gate in scoringEngine and let raw
+  // confidence dominate the ranking. Recognise them explicitly, tiered by filing
+  // type: audited periodic reports (10-K/10-Q/20-F) carry more weight than 8-K /
+  // EX-99.1 press-release exhibits, which are SEC-filed but corporate-authored.
+  const isAuditedReport = /\b(10-K|10-Q|20-F)\b/.test(anchor);
+  const isEdgarFiling =
+    url.includes("sec.gov") ||
+    /\b(10-K|10-Q|8-K|6-K|20-F|S-1|EX-99|424B)\b/.test(anchor);
+
+  const profile: SourceProfile = isEdgarFiling
+    ? { score: isAuditedReport ? 92 : 82, tier: "Institutional" }
+    : detectSourceProfile(sourceName);
+
   const domain = sourceName.toLowerCase().replace(/\s+/g, "");
   const sourceDomainMatch =
-    url.includes(domain) || profile.tier === "Unknown";
+    url.includes(domain) || profile.tier === "Unknown" || isEdgarFiling;
 
   const geminiScore = suggestion.credibilityScore || 0;
   const finalCredibility = sourceDomainMatch
