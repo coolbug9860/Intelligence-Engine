@@ -14,7 +14,9 @@
  *
  *  PUBLISH NOW  — All three green lights:
  *    1. Whitespace: CONFIRMED_GAP or PARTIAL_COVERAGE (not COMMODITISED)
- *    2. Trend: RISING or STABLE (not DECLINING)
+ *    2. Trend: not DECLINING. RISING/STABLE confirm demand; UNKNOWN/unavailable is
+ *       allowed through because Google Trends is unreliable on cloud IPs and a
+ *       confirmed decline is already caught by the PASS veto below.
  *    3. Opportunity score ≥ 62 (above median in normal pipeline output)
  *
  *  PASS  — Any one hard veto:
@@ -141,16 +143,17 @@ function computeVerdict(
 
   // ── PUBLISH NOW ─────────────────────────────────────────────────────────
   const wsGreen  = ws === 'CONFIRMED_GAP' || ws === 'PARTIAL_COVERAGE';
-  // PUBLISH NOW requires POSITIVE trend confirmation. UNKNOWN/null is NOT a green
-  // light — those fall through to MONITOR with reason "trend direction is unclear".
-  // This matches the documented 3-green-lights rule (whitespace + trend + score).
-  // Trade-off: when Google Trends rate-limits and returns UNKNOWN for everything,
-  // PUBLISH NOW becomes scarce by design — missing data is treated as "not confirmed",
-  // not "assumed safe", which is the conservative stance for a $4k commission call.
-  const trendOk  = trend === 'RISING' || trend === 'STABLE';
+  // No explicit trend gate here. A DECLINING trend is already a hard veto above
+  // (→ PASS), so by this point the trend is RISING, STABLE, UNKNOWN, or null —
+  // none of which should block PUBLISH NOW. We intentionally do NOT require a
+  // positive trend: Google Trends is blocked/rate-limited on cloud IPs (Render)
+  // and returns UNKNOWN most of the time, so demoting on UNKNOWN was hiding genuine
+  // Confirmed-Gap opportunities for an infrastructure reason, not a market one.
+  // The PUBLISH NOW reason still says "trend data unavailable" when applicable, so
+  // the reviewer knows the trend is unverified.
   const scoreOk  = oppScore >= 62;
 
-  if (wsGreen && trendOk && scoreOk) {
+  if (wsGreen && scoreOk) {
     const wsPhrase =
       ws === 'CONFIRMED_GAP'
         ? 'no major publishers have this title'
