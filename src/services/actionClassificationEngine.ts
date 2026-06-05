@@ -17,7 +17,7 @@
  *    2. Trend: not DECLINING. RISING/STABLE confirm demand; UNKNOWN/unavailable is
  *       allowed through because Google Trends is unreliable on cloud IPs and a
  *       confirmed decline is already caught by the PASS veto below.
- *    3. Opportunity score ≥ 62 (above median in normal pipeline output)
+ *    3. Opportunity score ≥ 68 (commercial-viability bar; see PUBLISH_SCORE_THRESHOLD)
  *
  *  PASS  — Any one hard veto:
  *    - whiteSpaceStatus is COMMODITISED
@@ -100,6 +100,14 @@ function computeUrgency(s: ReportSuggestion): ActionUrgency {
 // VERDICT + REASON
 // ─────────────────────────────────────────────────────────────────────────────
 
+// PUBLISH NOW score gate. Raised from 62 → 68 after the EDGAR source-authority fix
+// lifted the evidence gate uniformly: with commercial value now driving the spread,
+// 62 promoted ~8 of 9 opportunities. 68 restores selectivity to a top slate (~4-5).
+const PUBLISH_SCORE_THRESHOLD = 68;
+
+// PASS floor — below this, commercial signal is too weak to commission.
+const PASS_SCORE_FLOOR = 45;
+
 function computeVerdict(
   s: ReportSuggestion,
   actionScore: number
@@ -127,7 +135,7 @@ function computeVerdict(
     };
   }
 
-  if (oppScore < 45) {
+  if (oppScore < PASS_SCORE_FLOOR) {
     return {
       verdict: 'PASS',
       reason: `Opportunity score of ${oppScore} is below the commercial viability floor — insufficient evidence of buyer demand or segmentability.`,
@@ -151,7 +159,7 @@ function computeVerdict(
   // Confirmed-Gap opportunities for an infrastructure reason, not a market one.
   // The PUBLISH NOW reason still says "trend data unavailable" when applicable, so
   // the reviewer knows the trend is unverified.
-  const scoreOk  = oppScore >= 62;
+  const scoreOk  = oppScore >= PUBLISH_SCORE_THRESHOLD;
 
   if (wsGreen && scoreOk) {
     const wsPhrase =
@@ -178,7 +186,7 @@ function computeVerdict(
     else monitorReasons.push('partial competitor coverage detected');
   }
   if (!scoreOk) {
-    monitorReasons.push(`opportunity score of ${oppScore} is below the publish threshold of 62`);
+    monitorReasons.push(`opportunity score of ${oppScore} is below the publish threshold of ${PUBLISH_SCORE_THRESHOLD}`);
   }
   if (trend === 'UNKNOWN' || trend == null) {
     monitorReasons.push('trend direction is unclear');
