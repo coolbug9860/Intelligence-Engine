@@ -198,73 +198,66 @@ function saveMemoryToDisk(memory: any): void {
 // Quality standards: editorial content only, no user-generated content,
 // no paywalled feeds that return 403, no aggregators with no bylines.
 // Audited and upgraded 2026-05-30.
+// Re-audited 2026-06-06: removed 24 dead (403/404/401/timeout/malformed), 2 stale
+// (>1yr old, redundant), and 2 undated (fiercepharma/biotech — no parseable dates,
+// dropped by the freshness filter anyway). Added 14 Industry Dive + Electrek feeds,
+// all verified live and fresh. Every URL below returned parseable, recent items.
 const STABLE_RSS_FEEDS = [
 
   // ── Healthcare & Pharma ──────────────────────────────────────────────────
-  "https://www.statnews.com/feed/",                           // STAT News — gold standard pharma/biotech journalism
-  "https://www.fiercepharma.com/rss/xml",                    // Fierce Pharma — industry news
-  "https://www.fiercebiotech.com/rss/xml",                   // Fierce Biotech — R&D pipeline coverage
+  "https://www.statnews.com/feed/",                           // STAT News — pharma/biotech journalism
   "https://www.biopharmadive.com/feeds/news/",               // BioPharma Dive — M&A, regulatory
-  "https://endpoints.news/feed/",                             // Endpoints News — clinical/regulatory focus
+  "https://endpoints.news/feed/",                             // Endpoints News — clinical/regulatory
   "https://health.economictimes.indiatimes.com/rss/lateststories", // ET Health — Asia market signals
-  "https://pharma.economictimes.indiatimes.com/rss/lateststories", // ET Pharma — India manufacturing signals
-  "https://www.pharmaceutical-technology.com/feed/",         // Pharm-Tech — manufacturing & supply chain
+  "https://pharma.economictimes.indiatimes.com/rss/lateststories", // ET Pharma — India manufacturing
   "https://www.drugdiscoverytrends.com/feed/",               // DDT — early pipeline signals
+  "https://www.healthcaredive.com/feeds/news/",              // Healthcare Dive — provider/payer markets
+  "https://www.medtechdive.com/feeds/news/",                 // MedTech Dive — medical devices/diagnostics
 
   // ── Semiconductor & Electronics ──────────────────────────────────────────
   "https://semiengineering.com/feed/",                        // Semiconductor Engineering — deep technical
   "https://www.eetimes.com/feed",                             // EE Times — broad electronics coverage
   "https://semiconductor-today.com/rss/news.xml",            // Semiconductor Today — industry news
   "https://www.electronicdesign.com/rss.xml",                // Electronic Design — engineering/design
-  "https://www.ednasia.com/rss.xml",                         // EDN Asia — Asia semiconductor signals
 
   // ── Construction ─────────────────────────────────────────────────────────
   "https://www.constructiondive.com/feeds/news/",            // Construction Dive — project/market news
-  "https://www.bdcnetwork.com/rss.xml",                      // Building Design+Construction — commercial
-  "https://www.enr.com/rss/all",                             // Engineering News-Record — infrastructure
+  "https://www.smartcitiesdive.com/feeds/news/",             // Smart Cities Dive — infrastructure/urban
 
   // ── Automotive ───────────────────────────────────────────────────────────
   "https://auto.economictimes.indiatimes.com/rss/industry",  // ET Auto — global supply chain signals
   "https://auto.economictimes.indiatimes.com/rss/auto-technology", // ET Auto — EV/tech signals
-  "https://www.autonews.com/rss.rss",                        // Automotive News — industry standard
-  "https://www.wardsauto.com/rss.xml",                       // Wards Auto — production data/trends
-  "https://www.just-auto.com/feed/",                         // Just Auto — global OEM coverage
+  "https://www.automotivedive.com/feeds/news/",              // Automotive Dive — OEM/EV market news
 
   // ── Energy & Cleantech ───────────────────────────────────────────────────
-  "https://www.renewableenergyworld.com/feed/",              // Renewable Energy World — editorial
   "https://cleantechnica.com/feed/",                         // CleanTechnica — EV/solar/storage
   "https://www.pv-tech.org/feed/",                           // PV Tech — solar industry
   "https://www.energy-storage.news/feed/",                   // Energy Storage News — battery/grid
-  "https://www.rechargenews.com/rss",                        // Recharge News — wind/renewables
-  "https://www.greentechmedia.com/rss/all",                  // Wood Mackenzie / GTM — market intelligence
+  "https://www.utilitydive.com/feeds/news/",                 // Utility Dive — grid/power markets
+  "https://electrek.co/feed/",                               // Electrek — EV/clean energy
 
   // ── BFSI & Fintech ────────────────────────────────────────────────────────
-  "https://www.americanbanker.com/arc/outboundfeeds/rss/",   // American Banker — institutional finance
   "https://www.tearsheet.co/feed",                           // Tearsheet — fintech/banking transformation
-  "https://www.pymnts.com/feed/",                            // PYMNTS — payments industry
-  "https://www.thefinancialbrand.com/feed/",                 // The Financial Brand — retail banking
-  "https://fintechmagazine.com/rss.xml",                     // Fintech Magazine — B2B fintech
+  "https://www.bankingdive.com/feeds/news/",                 // Banking Dive — institutional finance
+  "https://www.paymentsdive.com/feeds/news/",                // Payments Dive — payments industry
+  "https://www.cfodive.com/feeds/news/",                     // CFO Dive — corporate finance/treasury
 
   // ── Chemicals ────────────────────────────────────────────────────────────
-  "https://cen.acs.org/feeds/rss/topic/business.xml",       // C&EN Business — verified working
+  "https://cen.acs.org/feeds/rss/topic/business.xml",       // C&EN Business
   "https://cen.acs.org/feeds/rss/latestnews.xml",           // C&EN Latest News
   "https://cen.acs.org/feeds/rss/topic/policy.xml",         // C&EN Policy — regulatory signals
   "https://cen.acs.org/feeds/rss/topic/synthesis.xml",      // C&EN Synthesis — R&D signals
-  "https://www.chemweek.com/rss/rss.xml",                   // Chemical Week — pricing/supply chain
-  "https://www.icis.com/explore/resources/news/rss/",       // ICIS — commodity chemicals pricing
 
   // ── Aerospace & Defense ──────────────────────────────────────────────────
   "https://www.defensenews.com/arc/outboundfeeds/rss/category/global/?outputType=xml",
   "https://www.defensenews.com/arc/outboundfeeds/rss/category/industry/?outputType=xml",
   "https://aviationweek.com/awn/rss-feed-by-content-source", // Aviation Week — aerospace industry
-  "https://breakingdefense.com/feed/",                       // Breaking Defense — procurement/contracts
   "https://spacenews.com/feed/",                             // Space News — satellite/space commerce
 
   // ── Agriculture ──────────────────────────────────────────────────────────
   "https://agfundernews.com/feed",                           // AgFunder — agritech investment
   "https://agweek.com/index.rss",                            // AgWeek — crop/commodity news
   "https://brownfieldagnews.com/feed",                       // Brownfield Ag News — US farm markets
-  "https://www.agriculture.com/rss",                         // Agriculture.com — broad coverage
   "https://www.farmprogress.com/rss.xml",                    // Farm Progress — precision ag trends
 
   // ── Food & Beverage ──────────────────────────────────────────────────────
@@ -272,85 +265,72 @@ const STABLE_RSS_FEEDS = [
   "https://www.beveragedaily.com/arc/outboundfeeds/rss/",   // Beverage Daily — drinks industry
   "https://www.foodbusinessnews.net/rss/articles",           // Food Business News — manufacturer focus
   "https://www.fooddive.com/feeds/news/",                    // Food Dive — M&A/supply chain
-  "https://www.dairyfoods.com/rss/all",                      // Dairy Foods — sub-vertical depth
+  "https://www.grocerydive.com/feeds/news/",                 // Grocery Dive — grocery retail/CPG
 
   // ── Retail & E-Commerce ──────────────────────────────────────────────────
   "https://www.retaildive.com/feeds/news/",                  // Retail Dive — market/strategy news
   "https://www.modernretail.co/feed/",                       // Modern Retail — DTC/e-commerce
-  "https://www.emarketer.com/rss.xml",                       // EMARKETER — digital commerce data
-  "https://www.chainstoreage.com/rss.xml",                   // Chain Store Age — retail ops
+  "https://www.supplychaindive.com/feeds/news/",             // Supply Chain Dive — logistics/fulfillment
 
   // ── IT & Telecom (B2B only) ──────────────────────────────────────────────
   "https://www.lightreading.com/rss.xml",                    // Light Reading — telecom/5G
-  "https://www.sdxcentral.com/feed/",                        // SDxCentral — network/cloud
-  "https://www.networkworld.com/news/rss.xml",               // Network World — enterprise IT
   "https://www.datacenterdynamics.com/en/rss/",              // Data Center Dynamics — infrastructure
+  "https://www.ciodive.com/feeds/news/",                     // CIO Dive — enterprise IT
+  "https://www.cybersecuritydive.com/feeds/news/",           // Cybersecurity Dive — security spend
+
+  // ── Industrial / Cross-Vertical ──────────────────────────────────────────
+  "https://www.manufacturingdive.com/feeds/news/",           // Manufacturing Dive — industrial/reshoring
 
   // ── Global Tier-1 Business ───────────────────────────────────────────────
   "https://feeds.bloomberg.com/markets/news.rss",            // Bloomberg Markets
   "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain", // WSJ Markets
-  "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",          // Dow Jones Markets
-  "https://www.marketwatch.com/rss/marketpulse",             // MarketWatch Pulse
   "https://feeds.content.dowjones.io/public/rss/mw_topstories", // MarketWatch Top Stories
-  "https://www.reuters.com/rssFeed/businessNews",            // Reuters Business — direct feed
 ];
 // Source name overrides for feeds whose RSS channel title is misleading or generic
 const SOURCE_NAME_OVERRIDES: Record<string, string> = {
   // Global Tier-1
   "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain": "WSJ Markets",
-  "https://feeds.a.dj.com/rss/RSSMarketsMain.xml": "WSJ Markets",
-  "https://www.marketwatch.com/rss/marketpulse": "MarketWatch",
   "https://feeds.content.dowjones.io/public/rss/mw_topstories": "MarketWatch",
   "https://feeds.bloomberg.com/markets/news.rss": "Bloomberg Markets",
-  "https://www.reuters.com/rssFeed/businessNews": "Reuters Business",
   // Chemicals
   "https://cen.acs.org/feeds/rss/topic/business.xml": "Chemical & Engineering News",
   "https://cen.acs.org/feeds/rss/latestnews.xml": "Chemical & Engineering News",
   "https://cen.acs.org/feeds/rss/topic/policy.xml": "Chemical & Engineering News",
   "https://cen.acs.org/feeds/rss/topic/synthesis.xml": "Chemical & Engineering News",
-  "https://www.chemweek.com/rss/rss.xml": "Chemical Week",
-  "https://www.icis.com/explore/resources/news/rss/": "ICIS",
   // Energy
   "https://www.pv-tech.org/feed/": "PV Tech",
   "https://www.energy-storage.news/feed/": "Energy Storage News",
-  "https://www.rechargenews.com/rss": "Recharge News",
-  "https://www.greentechmedia.com/rss/all": "Wood Mackenzie / GTM",
-  // BFSI
-  "https://www.americanbanker.com/arc/outboundfeeds/rss/": "American Banker",
+  "https://www.utilitydive.com/feeds/news/": "Utility Dive",
+  "https://electrek.co/feed/": "Electrek",
+  // BFSI & Fintech
   "https://www.tearsheet.co/feed": "Tearsheet",
-  "https://www.pymnts.com/feed/": "PYMNTS",
-  "https://www.thefinancialbrand.com/feed/": "The Financial Brand",
-  "https://fintechmagazine.com/rss.xml": "Fintech Magazine",
+  "https://www.bankingdive.com/feeds/news/": "Banking Dive",
+  "https://www.paymentsdive.com/feeds/news/": "Payments Dive",
+  "https://www.cfodive.com/feeds/news/": "CFO Dive",
   // Semiconductor
   "https://www.electronicdesign.com/rss.xml": "Electronic Design",
-  "https://www.ednasia.com/rss.xml": "EDN Asia",
   // Automotive
-  "https://www.autonews.com/rss.rss": "Automotive News",
-  "https://www.wardsauto.com/rss.xml": "Wards Auto",
-  "https://www.just-auto.com/feed/": "Just Auto",
+  "https://www.automotivedive.com/feeds/news/": "Automotive Dive",
   // Construction
-  "https://www.bdcnetwork.com/rss.xml": "BD+C",
-  "https://www.enr.com/rss/all": "Engineering News-Record",
+  "https://www.smartcitiesdive.com/feeds/news/": "Smart Cities Dive",
   // Aerospace & Defense
-  "https://breakingdefense.com/feed/": "Breaking Defense",
   "https://spacenews.com/feed/": "Space News",
-  // Retail
+  // Retail & Logistics
   "https://www.modernretail.co/feed/": "Modern Retail",
-  "https://www.emarketer.com/rss.xml": "EMARKETER",
-  "https://www.chainstoreage.com/rss.xml": "Chain Store Age",
+  "https://www.supplychaindive.com/feeds/news/": "Supply Chain Dive",
   // IT & Telecom
-  "https://www.sdxcentral.com/feed/": "SDxCentral",
-  "https://www.networkworld.com/news/rss.xml": "Network World",
   "https://www.datacenterdynamics.com/en/rss/": "Data Center Dynamics",
-  // Pharma
-  "https://www.pharmaceutical-technology.com/feed/": "Pharmaceutical Technology",
+  "https://www.ciodive.com/feeds/news/": "CIO Dive",
+  "https://www.cybersecuritydive.com/feeds/news/": "Cybersecurity Dive",
+  // Industrial
+  "https://www.manufacturingdive.com/feeds/news/": "Manufacturing Dive",
+  // Healthcare & Pharma
   "https://www.drugdiscoverytrends.com/feed/": "Drug Discovery Trends",
+  "https://www.healthcaredive.com/feeds/news/": "Healthcare Dive",
+  "https://www.medtechdive.com/feeds/news/": "MedTech Dive",
   // Food & Bev
   "https://www.fooddive.com/feeds/news/": "Food Dive",
-  "https://www.dairyfoods.com/rss/all": "Dairy Foods",
-  // Agriculture
-  "https://www.agriculture.com/rss": "Agriculture.com",
-  "https://www.farmprogress.com/rss.xml": "Farm Progress",
+  "https://www.grocerydive.com/feeds/news/": "Grocery Dive",
 };
 /**
  * Shared STABLE_RSS_FEEDS ingestion for /api/rss and /api/intelligence/run.
