@@ -50,15 +50,30 @@ app.use(express.json({ limit: "10mb" }));
 // CORS — Only allow requests from our own Render domain.
 // Blocks other websites from silently calling our API using your Gemini quota.
 // ════════════════════════════════════════════════════════════════════════════════
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://kaiso-intelligence-os.onrender.com";
+// Build the CORS allowlist. RENDER_EXTERNAL_URL is injected automatically by Render
+// and always matches the live service URL, so the app works out-of-the-box on any
+// Render deploy even when ALLOWED_ORIGIN is not set manually. ALLOWED_ORIGIN
+// (comma-separated) can add extra origins, e.g. a custom domain. Trailing slashes
+// are stripped so values like "https://x.onrender.com/" still match the browser's
+// Origin header (which never includes a trailing slash).
+const ALLOWED_ORIGINS = [
+  process.env.RENDER_EXTERNAL_URL,
+  ...(process.env.ALLOWED_ORIGIN ?? "").split(","),
+]
+  .map((o) => (o ?? "").trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (same-domain, mobile apps, curl during dev)
-    if (!origin || origin === ALLOWED_ORIGIN) {
+    // Requests with no Origin header (same-origin navigations, curl, health checks)
+    // are always allowed. Browser cross-origin requests must match the allowlist.
+    if (!origin || ALLOWED_ORIGINS.includes(origin.replace(/\/$/, ""))) {
       callback(null, true);
     } else {
-      console.warn(`[CORS] Blocked request from origin: ${origin}`);
+      console.warn(
+        `[CORS] Blocked request from origin: ${origin} ` +
+        `(allowed: ${ALLOWED_ORIGINS.join(", ") || "none configured"})`
+      );
       callback(new Error("Not allowed by CORS"));
     }
   },
