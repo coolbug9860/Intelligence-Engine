@@ -273,16 +273,25 @@ async function checkPublisher(
       }
     }
 
+    // A successful HTTP fetch that yields ZERO parseable titles is almost never a
+    // genuine "no coverage" result — a real publisher index always returns some
+    // titles. It means the scraper could not parse the page (JS-rendered SPA,
+    // markup change, or soft block). Treating it as scrapeFailed prevents a broken
+    // scraper from being counted as a clean "no competitor coverage" vote, which
+    // would otherwise inflate CONFIRMED_GAP confidence (see deriveWhiteSpaceResult).
+    const noTitlesParsed = titles.length === 0;
+
     console.log(
       `[WhiteSpace] ${publisher.name}: ${titles.length} titles found, ` +
-      `${matchedTitles.length} matching "${searchKeyword}"`
+      `${matchedTitles.length} matching "${searchKeyword}"` +
+      (noTitlesParsed ? ' — treating as unreliable (parser returned nothing)' : '')
     );
 
     return {
       publisherName: publisher.name,
       hasMatch: matchedTitles.length > 0,
       matchedTitles,
-      scrapeFailed: false,
+      scrapeFailed: noTitlesParsed,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
