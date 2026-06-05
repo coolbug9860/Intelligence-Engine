@@ -926,7 +926,18 @@ IMPORTANT: Return a JSON array of exactly 10 objects. No explanation text. No ma
               signalOriginGeography: { type: Type.STRING },
               recommendedReportGeography: { type: Type.STRING },
             },
-            required: ["reportTitle", "marketKeyword", "vertical", "rationale", "trigger", "confidenceScore"],
+            required: [
+              "reportTitle", "marketKeyword", "vertical", "rationale", "trigger",
+              "confidenceScore",
+              // thematicCluster drives dedup grouping; omitting it forces the
+              // "Emerging Markets" fallback that caused historical dedup collapse.
+              "thematicCluster",
+              // Commercial sub-scores now DRIVE the ranking (see scoringEngine),
+              // so they must always be present rather than defaulting to 5.
+              "commercialViabilityScore", "buyerWillingnessScore", "quantifiabilityScore",
+              "seoSearchabilityScore", "segmentabilityScore", "cagrViabilityScore",
+              "competitiveDensityScore",
+            ],
           },
         },
       },
