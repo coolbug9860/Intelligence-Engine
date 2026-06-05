@@ -1,0 +1,6 @@
+{
+  "name": "KAISO Strategic Research OS",
+  "description": "Asymmetric Intelligence Operating System for institutional B2B research synthesis and market resilience simulation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["AI Analysis", "Real-time RSS", "Market Intelligence"]
+}

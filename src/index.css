@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Space+Grotesk:wght@300..700&family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0A1E3C;
+  --color-brand-blue: #163273;
+  --color-brand-red: #EF4444;
+  --color-accent-blue: #38BDF8;
+  --color-bg: #F8FAFC;
+  --color-ink: #0F172A;
+  --color-muted: #64748B;
+  
+  --font-sans: "Montserrat", "Inter", ui-sans-serif, system-ui;
+  --font-serif: "Playfair Display", ui-serif, Georgia;
+  --font-display: "Montserrat", "Space Grotesk", sans-serif;
+  --font-mono: "Courier New", monospace;
+  --font-brand: "Montserrat", sans-serif;
+
+  @keyframes progress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @keyframes scan-line {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(1000%); }
+  }
+
+  @keyframes pulse-once {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  --animate-progress: progress 2s infinite linear;
+  --animate-spin-slow: spin-slow 8s infinite linear;
+  --animate-shimmer: shimmer 2.5s infinite linear;
+  --animate-scan-line: scan-line 4s infinite linear;
+  --animate-pulse-once: pulse-once 0.5s ease-out forwards;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .mask-gradient {
+    mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-ink;
+  }
+}

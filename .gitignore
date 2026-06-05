@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Runtime data — contains accumulated intelligence cycles
+kaiso-memory.json
+
+# OS / editor noise
+.DS_Store
+*.swp
+*.swo
+
+# EDGAR signal cache — regenerates automatically, never commit
+edgar-cache.json
