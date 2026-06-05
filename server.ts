@@ -589,17 +589,32 @@ console.log(`[RSS] Starting ingestion of ${STABLE_RSS_FEEDS.length} feeds...`);
       const feed = result.value;
       successCount++;
 
-const cutoff = Date.now() - 48 * 60 * 60 * 1000;
-      const items = (feed.items || []).map((item: any) => ({
-        title: item.title || "",
-        link: item.link || "",
-        pubDate: item.pubDate || "",
-        description: (item.contentSnippet || item.content || "").slice(0, 700),
-        sourceName: SOURCE_NAME_OVERRIDES[STABLE_RSS_FEEDS[index]] || feed.title || "Unknown Source",
-        timestamp: item.pubDate
-          ? new Date(item.pubDate).getTime()
-          : Date.now(),
-      })).filter((item) => item.timestamp >= cutoff);
+const now = Date.now();
+      const cutoff = now - 48 * 60 * 60 * 1000;
+      // Allow 1h of clock skew, but reject articles dated further in the future.
+      // Some feeds (e.g. Aviation Week event announcements) publish forward-dated
+      // items; without this guard they get a future timestamp, sort to the very top
+      // of the feed, and render as "JUST NOW" every session until the date passes.
+      const futureCutoff = now + 60 * 60 * 1000;
+      const items = (feed.items || []).map((item: any) => {
+        // Prefer rss-parser's normalized isoDate; fall back to raw pubDate.
+        const rawDate = item.isoDate || item.pubDate || "";
+        const parsed = rawDate ? new Date(rawDate).getTime() : NaN;
+        return {
+          title: item.title || "",
+          link: item.link || "",
+          pubDate: rawDate,
+          description: (item.contentSnippet || item.content || "").slice(0, 700),
+          sourceName: SOURCE_NAME_OVERRIDES[STABLE_RSS_FEEDS[index]] || feed.title || "Unknown Source",
+          timestamp: parsed,
+        };
+      }).filter((item) =>
+        // Drop undated/unparseable items instead of stamping them Date.now()
+        // (that faked freshness), and drop future-dated items (the "JUST NOW" bug).
+        Number.isFinite(item.timestamp) &&
+        item.timestamp >= cutoff &&
+        item.timestamp <= futureCutoff
+      );
 
       allArticles.push(...items);
       console.log(

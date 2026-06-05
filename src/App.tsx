@@ -235,6 +235,9 @@ return () => {};
 
   const formatRelativeTime = (timestamp: number) => {
     const diff = Date.now() - timestamp;
+    // Future-dated items are filtered out server-side, but guard here too so a
+    // forward-dated feed item can never render as the misleading "JUST NOW".
+    if (diff < 0) return 'SCHEDULED';
     const minutes = Math.floor(diff / 60000);
     if (minutes < 1) return 'JUST NOW';
     if (minutes < 60) return `${minutes}M AGO`;
