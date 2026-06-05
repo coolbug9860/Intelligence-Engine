@@ -699,7 +699,7 @@ export async function analyzeNews(
 
     if (suppress.length) {
       lines.push('');
-      lines.push('STRONGLY AVOID RESURFACING — these were surfaced within 14 days. Only include if the supporting evidence is a new signal published within the last 7 days that is materially different from prior evidence. You MUST still return exactly 10 opportunities total — if fresh signals are scarce, prefer a new angle on a suppressed theme over returning fewer results:');
+      lines.push('STRONGLY AVOID RESURFACING — these were surfaced within 14 days. Only include if the supporting evidence is a new signal published within the last 7 days that is materially different from prior evidence. Aim for 10 opportunities but never fewer than 8, and never pad the list by recycling a suppressed theme just to reach a count. A genuinely new angle backed by fresh evidence always beats resurfacing:');
       suppress.forEach(o => {
         const daysAgo = Math.round((nowMs - new Date(o.generatedAt).getTime()) / DAY_MS);
         lines.push(`  - ${o.reportTitle} [${o.vertical}] — ${daysAgo}d ago`);
@@ -740,11 +740,11 @@ export async function analyzeNews(
       lines.push('ABSOLUTE RULE — ANCHOR REUSE PROHIBITED:');
       lines.push('The following articles or filings have ALREADY been used as evidence for an opportunity in a previous session. You MUST NOT use any of them as the sourceArticleTitle for ANY opportunity in this response — regardless of the report title, angle, scope, or vertical. This rule blocks the SOURCE ARTICLE ITSELF, not just the title it previously generated. WRONG: using "Ondas Inc. EX-99.1" as a Defense Electronics report after it already anchored a Defense Procurement report — same article, different angle, still prohibited. WRONG: using "AIR PRODUCTS 10-Q" for a Specialty Chemicals for Electronics report after it anchored a Specialty Chemicals Demand report. The filing is exhausted. Find a different article. This rule has NO exceptions — signal strength, investment size, and relevance do NOT override it:');
       usedAnchors.forEach(a => lines.push(`  - ${a}`));
-      lines.push('Violating this rule produces duplicate intelligence with zero value to Kaiso. The signal pool always contains 10 worthwhile fresh opportunities — find them.');
+      lines.push('Violating this rule produces duplicate intelligence with zero value to Kaiso. The signal pool reliably contains at least 8 to 10 worthwhile fresh opportunities — find them.');
     }
 
     lines.push('');
-    lines.push('Every slot used on a repeated theme is a slot not used on fresh intelligence. When a known theme and a genuinely new theme are both viable, always prefer the new one. HOWEVER: you must always return exactly 10 opportunities regardless. Suppression is a preference signal, not a hard filter — never return fewer than 10.');
+    lines.push('Every slot used on a repeated theme is a slot not used on fresh intelligence. When a known theme and a genuinely new theme are both viable, always prefer the new one. Target 10 opportunities and never return fewer than 8. Do not pad with recycled or weak themes to hit a number: 8 strong, genuinely novel opportunities beat 10 with filler.');
 
     return lines.join('\n');
   })();
@@ -763,6 +763,11 @@ export async function analyzeNews(
     'Emerging Application', 'ESG / Sustainability Mandate', 'Investment Surge',
     'Consumer Behavior Shift', 'Cross-Vertical Convergence'
   ];
+
+  // Forecast window for report titles — computed dynamically so titles never go
+  // stale (e.g. shipping "2025-2034" in 2026). Standard 10-year syndicated window.
+  const currentYear = new Date().getFullYear();
+  const FORECAST_RANGE = `${currentYear}-${currentYear + 9}`;
 
   const prompt = `You are a senior market intelligence analyst at Kaiso Research, a global B2B syndicated market research firm.
 
@@ -786,7 +791,7 @@ After identifying opportunities from EDGAR, scan RSS/NewsAPI articles to find ad
 CONVERGENCE BONUS — HIGHEST CONFIDENCE:
 When an EDGAR filing AND one or more RSS articles point to the same market theme, that is maximum-confidence convergence. Elevate the confidenceScore to 8+ for such opportunities and rank them above single-source signals.
 
-RANKING RULE: EDGAR-backed opportunity > EDGAR + RSS convergence opportunity > multi-RSS opportunity > single-RSS opportunity. When commercialViabilityScore is equal, always rank the higher-priority source first.
+RANKING RULE (evidence tie-breaker only): EDGAR + RSS convergence (strongest evidence) > EDGAR-only > multi-RSS > single-RSS. IMPORTANT: commercial viability is the PRIMARY ranking axis — source tier is only a tie-breaker between opportunities of comparable commercial value. Never rank a commercially weak opportunity above a commercially strong one just because its source tier is higher.
 
 When multiple signals support the same opportunity, list ALL of them in the contributingSignals array. EDGAR entries in format: "[Company] [FilingType] ([Vertical])". RSS entries in format: "Article Title (Source Name)". Single-RSS-article opportunities are acceptable only if they score 8+ on Buyer Willingness and Quantifiability.
 
@@ -808,8 +813,11 @@ Score each opportunity against all six criteria (1-10). Only include opportuniti
 COMPOSITE: commercialViabilityScore = round(Q*0.20 + C*0.20 + D*0.15 + S*0.15 + B*0.20 + E*0.10)
 REJECTION RULE: Exclude any opportunity scoring below 5 on Quantifiability or Buyer Willingness.
 
+GROUNDING — MANDATORY, NO FABRICATION:
+Every opportunity MUST trace to a specific signal in the EDGAR or RSS data provided below. Do NOT invent companies, filings, funding rounds, regulations, partnerships, or statistics that are not present in the input. sourceArticleTitle and contributingSignals must be copied from the provided signals, not paraphrased or imagined. Estimated figures such as CAGR must be directional and anchored to drivers visible in the signals — never fabricate precise market sizes, dollar values, or growth rates. If a strong-looking opportunity cannot be grounded in the supplied signals, leave it out.
+
 FOR EACH OPPORTUNITY RETURN EXACTLY THESE FIELDS:
-- reportTitle: Full market research report title following this EXACT formula: [Geographic Modifier] + [Product/Technology Modifier] + [Core Subject] + "Market Size, Share & Forecast, 2025-2034". Geographic modifier MUST be "Global" unless the signal clearly originates from a specific country or region (e.g. "India", "North America", "Asia Pacific"). Example: "Global AI-Powered Offshore Wind Turbine Predictive Maintenance Market Size, Share & Forecast, 2025-2034". Never omit the geographic modifier. Never omit the forecast year range. CRITICAL TITLE RULE: The Core Subject must describe ONE single, specific market. Never combine two distinct markets into one title using "and", "&", or "/" — these are separate reports with separate buyers. WRONG: "Global AI Infrastructure and Data Center Market" (two markets). WRONG: "Global Biologics and Cell/Gene Therapy Market" (two markets). RIGHT: "Global AI Data Center Market" OR "Global AI Infrastructure Market" — pick the one the signal most directly supports. If a signal touches two adjacent markets, identify which single market has the stronger buyer demand right now and title the report for that market only.
+- reportTitle: Full market research report title following this EXACT formula: [Geographic Modifier] + [Product/Technology Modifier] + [Core Subject] + "Market Size, Share & Forecast, ${FORECAST_RANGE}". Geographic modifier MUST be "Global" unless the signal clearly originates from a specific country or region (e.g. "India", "North America", "Asia Pacific"). Example: "Global AI-Powered Offshore Wind Turbine Predictive Maintenance Market Size, Share & Forecast, ${FORECAST_RANGE}". Never omit the geographic modifier. Never omit the forecast year range. CRITICAL TITLE RULE: The Core Subject must describe ONE single, specific market. Never combine two distinct markets into one title using "and", "&", or "/" — these are separate reports with separate buyers. WRONG: "Global AI Infrastructure and Data Center Market" (two markets). WRONG: "Global Biologics and Cell/Gene Therapy Market" (two markets). RIGHT: "Global AI Data Center Market" OR "Global AI Infrastructure Market" — pick the one the signal most directly supports. If a signal touches two adjacent markets, identify which single market has the stronger buyer demand right now and title the report for that market only.
 - marketKeyword: SEO keyword phrase following this EXACT formula: [geographic modifier] + [product/technology modifier] + [core subject] + "market". All lowercase. No hyphens. No special characters. This must be the exact phrase a corporate buyer would type into Google. Example: "global ai powered offshore wind turbine predictive maintenance market". Must include the geographic modifier. Must end with "market". Must correspond to ONE searchable market — never combine two markets with "and" in the keyword phrase.
 - vertical: Must be exactly one of: ${KAISO_VERTICALS.map(v => `"${v}"`).join(', ')}
 - strategicPillar: Must be exactly one of: ${STRATEGIC_PILLARS.map(p => `"${p}"`).join(', ')}
@@ -870,7 +878,7 @@ ${cleanedEdgar.length > 0 ? JSON.stringify(cleanedEdgar, null, 2) : "(No EDGAR s
 PRIORITY 2 DATA — RSS & NEWSAPI ARTICLES (Use to corroborate EDGAR signals or identify additional opportunities.)
 ${JSON.stringify(cleanedArticles, null, 2)}
 
-IMPORTANT: Return a JSON array of exactly 10 objects. No explanation text. No markdown formatting. Pure valid JSON array only.`;
+IMPORTANT: Return a JSON array of 8 to 10 objects, strongest first. Prioritise quality and novelty over hitting a specific count — never pad with weak or recycled opportunities, and never return fewer than 8. No explanation text. No markdown formatting. Pure valid JSON array only.`;
 
   try {
     const analysisPromise = keyManager.call((client, keyMasked) => {
@@ -1088,6 +1096,9 @@ export async function generateFullBrief(
   }
 
   try {
+    const currentYear = new Date().getFullYear();
+    const forecastEndYear = currentYear + 9;
+    const FORECAST_RANGE = `${currentYear}-${forecastEndYear}`;
     const briefPromise = keyManager.call((client, keyMasked) => {
       console.info(`[GeminiKeys] Brief generation using key [${keyMasked}]`);
       return client.models.generateContent({
@@ -1168,13 +1179,13 @@ OUTPUT FORMAT — EXACT SECTION HEADERS, EXACT ORDER
 ═══════════════════════════════════════════════
 
 ## COMMISSION TITLE
-Kaiso report title in this exact format: "Global [Market Name] Market Size, Share & Forecast, 2025-2034". The market name must be specific and searchable. No "Analysis," no "Study," no em dashes. Example: "Global AI Data Center Cooling Solutions Market Size, Share & Forecast, 2025-2034".
+Kaiso report title in this exact format: "Global [Market Name] Market Size, Share & Forecast, ${FORECAST_RANGE}". The market name must be specific and searchable. No "Analysis," no "Study," no em dashes. Example: "Global AI Data Center Cooling Solutions Market Size, Share & Forecast, ${FORECAST_RANGE}".
 
 ## BURNING PLATFORM
 75-100 words. This is not an executive summary. It is the answer to one question: why does this opportunity exist right now and what happens to a buyer who waits 12 months? Open with one of the four hook techniques above. Do not open with a market size. Do not open with a definition. Close on the sharpest sentence in the section — the one that makes a commissioning editor reach for a budget approval.
 
 ## MARKET SNAPSHOT
-Market size estimate in this exact format: "USD X.X billion (2025E), projected to reach USD XX.X billion by 2034 at X.X% CAGR through 2034." Follow with one sentence anchoring the estimate to the named signals in the intelligence data above. If a precise figure cannot be derived from the signal data, provide a directional range and state explicitly what data would be needed to confirm it. Do not fabricate specific figures.
+Market size estimate in this exact format: "USD X.X billion (${currentYear}E), projected to reach USD XX.X billion by ${forecastEndYear} at X.X% CAGR through ${forecastEndYear}." Follow with one sentence anchoring the estimate to the named signals in the intelligence data above. If a precise figure cannot be derived from the signal data, provide a directional range and state explicitly what data would be needed to confirm it. Do not fabricate specific figures.
 
 ## SIGNAL ANALYSIS
 150-200 words. This is the analytical core of the brief. Show the causal chain from the triggering signal to the commercial opportunity, using named entities throughout. Structure: what the signal is (name the company or filing if EDGAR data is present) — what it reveals about the market — what decision it forces for enterprise buyers — why that creates a report opportunity now. One standalone punch sentence to close.
@@ -1213,10 +1224,10 @@ Companies active in this market. For each: name, headquarters country, one-line 
 The most commercially valuable geographies for this report based on the signal data. For each: region name, the specific regulatory, investment, or demand driver making it a priority right now (name the driver, not the category), and recommended depth (Primary Coverage / Secondary Coverage / Monitoring Only).
 
 ## REPORT CHAPTER OUTLINE
-8 chapter titles. Structure: 1. Market Overview & Scope, 2. Market Size & Forecast (2020-2034), 3. Segmentation Analysis, 4. Competitive Landscape & Company Profiles, 5. Regional Analysis, 6. Technology & Innovation Trends, 7. Regulatory Environment & Policy Impact, 8. Strategic Recommendations & Investment Outlook. Adjust chapter 6 and 7 titles to reflect the specific market — do not use generic filler titles.
+8 chapter titles. Structure: 1. Market Overview & Scope, 2. Market Size & Forecast (${currentYear - 5}-${forecastEndYear}), 3. Segmentation Analysis, 4. Competitive Landscape & Company Profiles, 5. Regional Analysis, 6. Technology & Innovation Trends, 7. Regulatory Environment & Policy Impact, 8. Strategic Recommendations & Investment Outlook. Adjust chapter 6 and 7 titles to reflect the specific market — do not use generic filler titles.
 
 ## SEO TITLE VARIANTS
-5 alternative report titles targeting different search intents: (1) geographic variant, (2) technology-specific variant, (3) application or end-use variant, (4) forecast-year variant, (5) buyer-persona variant. Each title must be specific enough to rank — not "Global EV Battery Market" but "Global EV Battery Thermal Management Systems Market Size, Share & Forecast, 2025-2034".
+5 alternative report titles targeting different search intents: (1) geographic variant, (2) technology-specific variant, (3) application or end-use variant, (4) forecast-year variant, (5) buyer-persona variant. Each title must be specific enough to rank — not "Global EV Battery Market" but "Global EV Battery Thermal Management Systems Market Size, Share & Forecast, ${FORECAST_RANGE}".
 
 ## RECOMMENDED PRICE TIER
 Standard ($3,500), Premium ($4,500), or Enterprise ($5,500+). State the tier. Justify in exactly 2 sentences: one sentence on market complexity and data scarcity, one sentence on buyer willingness to pay based on the decision context identified in the Buyer Personas section.
