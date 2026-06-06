@@ -14,7 +14,7 @@
  * establishes the shared internal types and the single source-of-truth config.
  */
 
-import type { SerpSignalType, OpportunityClass } from '../types';
+import type { SerpSignalType, OpportunityClass, ReportSuggestion } from '../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INTERNAL TYPES (pure-core data shapes)
@@ -108,3 +108,93 @@ export const RUN_CONTROL = {
   refreshWindowMs: Number(process.env.SERP_REFRESH_MS ?? 7 * 24 * 60 * 60 * 1000), // R8.4 (7d)
   cachePath: process.env.SERP_CACHE_PATH ?? '/tmp/serp-cache.json',           // R8.5
 } as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PURE CORE — keyword normalization, title matching, derivation, domain extract.
+// Deterministic, no I/O. Property-tested (Properties 3–6).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Generic stopwords for token-set title matching (R5.2). Intentionally small
+ * so genuine report tokens are never discarded. */
+const STOPWORDS = new Set([
+  'the', 'a', 'an', 'of', 'for', 'and', 'in', 'on', 'to', 'by', 'with', '&',
+]);
+
+/** Canonicalize a single token to a singular form so plural/singular variants
+ * compare equal (R5.3). Strips a single trailing "s" (but not "-ss" words like
+ * "business"); short words are left untouched. */
+function singularize(token: string): string {
+  return token.length > 3 && token.endsWith('s') && !token.endsWith('ss')
+    ? token.slice(0, -1)
+    : token;
+}
+
+/** Tokenize free text into a canonical content-token set: lowercase, split on
+ * non-alphanumerics, drop stopwords, singularize. Shared by title matching. */
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 0 && !STOPWORDS.has(t))
+    .map(singularize);
+}
+
+/**
+ * R5.1 / Property 3 — normalize a raw keyword to the canonical Search_Keyword:
+ * lowercase, trim, collapse internal whitespace, strip every leading "global"
+ * and trailing "market"/"industry" qualifier. Idempotent by construction (all
+ * qualifiers are stripped in a single call, so a second call is a no-op).
+ */
+export function normalizeKeyword(raw: string): string {
+  if (!raw) return '';
+  let s = raw.toLowerCase().trim().replace(/\s+/g, ' ');
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(/^global\s+/, '').trim();
+  } while (s !== prev);
+  do {
+    prev = s;
+    s = s.replace(/\s+(market|industry)$/, '').trim();
+  } while (s !== prev);
+  return s;
+}
+
+/**
+ * R5.2 / R5.3 / Property 4 — title matches a keyword when every canonical
+ * keyword token is present in the title's canonical token set. Order-insensitive
+ * (set membership) and singular/plural-insensitive (shared singularizer).
+ * An empty keyword never matches.
+ */
+export function titleMatchesKeyword(title: string, keyword: string): boolean {
+  const keywordTokens = tokenize(keyword);
+  if (keywordTokens.length === 0) return false;
+  const titleTokens = new Set(tokenize(title));
+  return keywordTokens.every((t) => titleTokens.has(t));
+}
+
+/**
+ * R1.1 / Property 5 — derive the Search_Keyword for a suggestion: use the
+ * normalized `marketKeyword` when non-empty, otherwise fall back to the
+ * normalized `reportTitle`. Empty when both are absent/blank.
+ */
+export function deriveSearchKeyword(
+  suggestion: Pick<ReportSuggestion, 'marketKeyword' | 'reportTitle'>,
+): string {
+  const fromKeyword = normalizeKeyword(suggestion.marketKeyword ?? '');
+  if (fromKeyword) return fromKeyword;
+  return normalizeKeyword(suggestion.reportTitle ?? '');
+}
+
+/**
+ * R1.4 / Property 6 — extract the publisher domain (host) from a result link.
+ * Returns the lowercased hostname with scheme, port, path, and query removed;
+ * returns '' for an unparseable URL.
+ */
+export function extractDomain(link: string): string {
+  try {
+    return new URL(link).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}

@@ -46,40 +46,40 @@ sub-tasks placed next to the implementation they validate.
     - Verify the rubric exposes named threshold/band fields and `runBudget` defaults to ≥ 1, with no inline literals in the classification path
     - _Requirements: 2.6, 9.1, 11.3_
 
-- [ ] 2. Implement keyword normalization, title matching, and derivation core
-  - [ ] 2.1 Implement `normalizeKeyword`
+- [x] 2. Implement keyword normalization, title matching, and derivation core
+  - [x] 2.1 Implement `normalizeKeyword`
     - Lowercase, trim, collapse internal whitespace runs to a single space, strip leading "global" and trailing "market"/"industry" qualifiers; idempotent
     - _Requirements: 5.1_
 
-  - [ ]* 2.2 Write property test for `normalizeKeyword`
+  - [x]* 2.2 Write property test for `normalizeKeyword`
     - **Property 3: Keyword normalization is canonical and idempotent**
     - **Validates: Requirements 5.1**
 
-  - [ ] 2.3 Implement `titleMatchesKeyword`
+  - [x] 2.3 Implement `titleMatchesKeyword`
     - Token-set comparison that is order-insensitive and singular/plural-insensitive, using the shared stopword tokenizer
     - _Requirements: 5.2, 5.3_
 
-  - [ ]* 2.4 Write property test for `titleMatchesKeyword`
+  - [x]* 2.4 Write property test for `titleMatchesKeyword`
     - **Property 4: Title matching ignores token order and singular/plural form**
     - **Validates: Requirements 5.2, 5.3**
 
-  - [ ] 2.5 Implement `deriveSearchKeyword` from a `ReportSuggestion`
+  - [x] 2.5 Implement `deriveSearchKeyword` from a `ReportSuggestion`
     - Use normalized `marketKeyword` when non-empty, otherwise fall back to `reportTitle`; result is empty when both are absent/blank
     - _Requirements: 1.1_
 
-  - [ ]* 2.6 Write property test for `deriveSearchKeyword`
+  - [x]* 2.6 Write property test for `deriveSearchKeyword`
     - **Property 5: Search keyword derivation source-of-truth**
     - **Validates: Requirements 1.1**
 
-  - [ ] 2.7 Implement `extractDomain` from a result link
+  - [x] 2.7 Implement `extractDomain` from a result link
     - Return the host component of a valid URL with scheme, port, path, and query removed
     - _Requirements: 1.4_
 
-  - [ ]* 2.8 Write property test for `extractDomain`
+  - [x]* 2.8 Write property test for `extractDomain`
     - **Property 6: Publisher domain extraction**
     - **Validates: Requirements 1.4**
 
-- [ ] 3. Checkpoint - Ensure all tests pass
+- [x] 3. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 4. Implement single-result classification and signal extraction
