@@ -38,16 +38,33 @@ export const ExportDossier = React.forwardRef<HTMLDivElement, ExportDossierProps
       : s.salesPotential === 'Medium' ? C.amber
       : C.lightBlue;
 
-    const riskColor = s.executionRisk === 'Low' ? C.green
-      : s.executionRisk === 'High' ? C.red
-      : C.amber;
-
-    const riskBg = s.executionRisk === 'Low' ? C.greenBg
-      : s.executionRisk === 'High' ? '#FEF2F2'
-      : '#FEFCE8';
-
     const sentimentColor = s.sentimentPolarity === 'Bullish' ? C.green
       : s.sentimentPolarity === 'Bearish' ? C.red
+      : C.slate600;
+
+    // Commissioning verdict — the headline decision tile.
+    const verdictColor = s.actionVerdict === 'PUBLISH NOW' ? C.red
+      : s.actionVerdict === 'MONITOR' ? C.amber
+      : C.slate600;
+    const verdictBg = s.actionVerdict === 'PUBLISH NOW' ? '#FEF2F2'
+      : s.actionVerdict === 'MONITOR' ? '#FEFCE8'
+      : C.slate50;
+
+    // White-space + trend, derived from real status (no emoji labels).
+    const whiteSpaceText = s.whiteSpaceStatus === 'CONFIRMED_GAP' ? 'Confirmed Gap'
+      : s.whiteSpaceStatus === 'PARTIAL_COVERAGE' ? 'Partial Coverage'
+      : s.whiteSpaceStatus === 'COMMODITISED' ? 'Commoditised'
+      : '—';
+    const whiteSpaceColor = s.whiteSpaceStatus === 'CONFIRMED_GAP' ? C.green
+      : s.whiteSpaceStatus === 'PARTIAL_COVERAGE' ? C.amber
+      : s.whiteSpaceStatus === 'COMMODITISED' ? C.red
+      : C.slate400;
+    const trendText = s.trendDirection === 'RISING' ? 'Rising'
+      : s.trendDirection === 'DECLINING' ? 'Declining'
+      : s.trendDirection === 'STABLE' ? 'Stable'
+      : '—';
+    const trendColor = s.trendDirection === 'RISING' ? C.green
+      : s.trendDirection === 'DECLINING' ? C.red
       : C.slate600;
 
     return (
@@ -98,7 +115,9 @@ export const ExportDossier = React.forwardRef<HTMLDivElement, ExportDossierProps
           <span style={{ fontSize: '10px', fontWeight: 700, color: C.slate700 }}>{s.sourceName}</span>
           <span style={{ color: C.slate200 }}>|</span>
           <span style={{ fontSize: '10px', color: C.slate600, flex: 1 }}>{s.sourceArticleTitle}</span>
-          <span style={{ fontSize: '9px', fontWeight: 700, color: C.green, textTransform: 'uppercase', letterSpacing: '1px' }}>● VERIFIED</span>
+          {(s.credibilityScore ?? 0) >= 60 && (
+            <span style={{ fontSize: '9px', fontWeight: 700, color: C.green, textTransform: 'uppercase', letterSpacing: '1px' }}>● VERIFIED</span>
+          )}
         </div>
 
         {/* MAIN BODY */}
@@ -110,9 +129,9 @@ export const ExportDossier = React.forwardRef<HTMLDivElement, ExportDossierProps
             {/* METRICS ROW */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '28px' }}>
               {[
-                { label: 'Sales Potential', value: s.salesPotential, color: scoreColor, bg: '#FEF2F2' },
+                { label: 'Decision', value: s.actionVerdict ?? '—', color: verdictColor, bg: verdictBg },
+                { label: 'Sales Potential', value: s.salesPotential, color: scoreColor, bg: C.slate50 },
                 { label: 'Execution Window', value: s.marketExecutionWindow, color: C.navy, bg: C.slate50 },
-                { label: 'Execution Risk', value: s.executionRisk ?? 'Medium', color: riskColor, bg: riskBg },
                 { label: 'Sentiment', value: s.sentimentPolarity, color: sentimentColor, bg: C.slate50 },
               ].map((m, i) => (
                 <div key={i} style={{ backgroundColor: m.bg, border: `1px solid ${C.slate200}`, borderRadius: '6px', padding: '12px' }}>
@@ -188,12 +207,13 @@ export const ExportDossier = React.forwardRef<HTMLDivElement, ExportDossierProps
             <div style={{ backgroundColor: C.slate50, border: `1px solid ${C.slate200}`, borderRadius: '8px', padding: '18px' }}>
               <div style={{ fontSize: '10px', fontWeight: 900, color: C.navy, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '14px' }}>Commercial Precision</div>
               {[
-                { label: 'Veracity Score', value: `${s.credibilityScore ?? '—'}%`, color: C.green },
+                { label: 'Opportunity Score', value: typeof s.opportunityScore === 'number' ? `${s.opportunityScore}/100` : '—', color: C.red },
+                { label: 'White Space', value: whiteSpaceText, color: whiteSpaceColor },
+                { label: 'Search Trend', value: trendText, color: trendColor },
+                { label: 'Signal Credibility', value: `${s.credibilityScore ?? '—'}%`, color: C.green },
                 { label: 'Primary Stakeholder', value: s.primaryStakeholder ?? '—', color: C.red },
-                { label: 'Regulatory', value: s.regulatoryHurdle ?? '—', color: s.regulatoryHurdle === 'Critical' ? C.red : s.regulatoryHurdle === 'None' ? C.green : C.amber },
-                { label: 'Nexus Signals', value: s.nexusArticlesCount ? `${s.nexusArticlesCount} converging` : '—', color: C.navy },
-              ].map((m, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < 3 ? `1px solid ${C.slate200}` : 'none' }}>
+              ].map((m, i, arr) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.slate200}` : 'none' }}>
                   <span style={{ fontSize: '9px', fontWeight: 700, color: C.slate400, textTransform: 'uppercase', letterSpacing: '1px' }}>{m.label}</span>
                   <span style={{ fontSize: '10px', fontWeight: 900, color: m.color, textTransform: 'uppercase', maxWidth: '160px', textAlign: 'right' }}>{m.value}</span>
                 </div>
