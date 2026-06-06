@@ -5,6 +5,14 @@ import { ReportSuggestion, RSSArticle, EDGARSignal } from "../types";
 const GEMINI_ANALYSIS_MODEL = "gemini-2.5-flash";   // Best price-performance for high-volume structured output with reasoning
 const GEMINI_BRIEF_MODEL = "gemini-2.5-pro";         // Most advanced reasoning for complex brief generation — worth the cost for a one-off $3-5k report justification
 
+// Fallback chain for the analysis call. A 503 UNAVAILABLE is a per-model
+// capacity problem (the model's shared serving pool is saturated), so retrying
+// the same model — even on a different key — keeps hitting the same wall. When
+// the primary is sustained-overloaded we fail over to a model with a SEPARATE
+// serving pool (flash-lite) using an identical request config. Quality degrades
+// slightly on the fallback, which beats returning zero opportunities.
+const ANALYSIS_MODEL_CHAIN = [GEMINI_ANALYSIS_MODEL, "gemini-2.5-flash-lite"];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MULTI-KEY ROTATION MANAGER
 //
@@ -59,15 +67,18 @@ function isTransientError(err: unknown): boolean {
     msg.includes("ETIMEDOUT") ||
     msg.includes("socket hang up") ||
     msg.includes("fetch failed") ||
+    msg.includes("timeout") ||
     status === 503 ||
     status === 500
   );
 }
 
-// Transient-error backoff: 3 retries on the same key at 2s, 4s, 8s.
-const TRANSIENT_MAX_RETRIES = 3;
-const TRANSIENT_BASE_DELAY_MS = 2000;
-const TRANSIENT_MAX_DELAY_MS = 8000;
+// Transient-error backoff: 2 retries on the same key at 1.5s, 3s. Kept short
+// because the analysis path now fails over to a separate model on sustained
+// overload (see ANALYSIS_MODEL_CHAIN), so deep same-model retrying is wasteful.
+const TRANSIENT_MAX_RETRIES = 2;
+const TRANSIENT_BASE_DELAY_MS = 1500;
+const TRANSIENT_MAX_DELAY_MS = 4000;
 
 class GeminiKeyManager {
   private keys: ManagedKey[] = [];
@@ -958,10 +969,11 @@ ${JSON.stringify(cleanedArticles, null, 2)}
 IMPORTANT: Return a JSON array of 8 to 10 objects, strongest first. Prioritise quality and novelty over hitting a specific count — never pad with weak or recycled opportunities, and never return fewer than 8. No explanation text. No markdown formatting. Pure valid JSON array only.`;
 
   try {
-    const analysisPromise = keyManager.call((client, keyMasked) => {
-      console.info(`Intelligence Core: Connected to Gemini API successfully. [${keyMasked}]`);
+    const runAnalysisOnce = (analysisModel: string) =>
+      keyManager.call((client, keyMasked) => {
+      console.info(`Intelligence Core: analyzing with ${analysisModel}. [${keyMasked}]`);
       return client.models.generateContent({
-        model: GEMINI_ANALYSIS_MODEL,
+        model: analysisModel,
         contents: [
           {
             role: "user",
@@ -1028,7 +1040,27 @@ IMPORTANT: Return a JSON array of 8 to 10 objects, strongest first. Prioritise q
       },
     });
     });
-    const response = await withTimeout(analysisPromise, 120000);
+
+    let response: unknown = undefined;
+    let lastAnalysisError: unknown = null;
+    for (const analysisModel of ANALYSIS_MODEL_CHAIN) {
+      try {
+        response = await withTimeout(runAnalysisOnce(analysisModel), 120000);
+        break;
+      } catch (err: unknown) {
+        lastAnalysisError = err;
+        if (isTransientError(err)) {
+          console.warn(
+            `[Gemini] Model ${analysisModel} unavailable (transient) — failing over to next model in chain.`
+          );
+          continue;
+        }
+        throw err;
+      }
+    }
+    if (response === undefined) {
+      throw lastAnalysisError ?? new Error("[Gemini] All analysis models unavailable.");
+    }
 
     // `.text` is a string getter in current @google/genai types, but older SDK
     // versions exposed it as a method. Cast through `any` so the defensive
