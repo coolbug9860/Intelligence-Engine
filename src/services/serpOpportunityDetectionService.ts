@@ -1,0 +1,110 @@
+/**
+ * serpOpportunityDetectionService.ts
+ *
+ * SERP-based white-space / opportunity detection. Replaces the fixed
+ * four-publisher scrape in competitorWhitespaceService.ts. Validates each
+ * opportunity keyword against real search-engine results (via a SERP provider),
+ * counts distinct competing syndicated-report domains across multiple signal
+ * types, and produces a deterministic GREEN / YELLOW / RED classification mapped
+ * onto the existing whiteSpace* contract consumed by actionClassificationEngine.
+ *
+ * This module is structured as a pure functional core (normalize → match →
+ * classify → extract → count → rubric → field mapping) plus a thin I/O shell
+ * (provider, cache, budget). Tasks 2–8 add the functions; this file (Task 1.4)
+ * establishes the shared internal types and the single source-of-truth config.
+ */
+
+import type { SerpSignalType, OpportunityClass } from '../types';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INTERNAL TYPES (pure-core data shapes)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SerpOrganicResult {
+  title: string;
+  link: string;                // full URL
+  domain: string;              // host extracted from link
+  snippet?: string;
+  hasReportSchema?: boolean;   // schema.org Report/Product observed (R3.4)
+  isPaywalled?: boolean;       // R4.4
+}
+
+export interface SerpResponse {
+  keyword: string;
+  organic: SerpOrganicResult[];
+  ads: SerpOrganicResult[];          // R3.2 paid block
+  aiOverviewSources: string[];       // cited domains from AI Overview (R3.3)
+}
+
+export interface ResultClassification {
+  domain: string;
+  isCompetitorReport: boolean;
+  matchedSignals: SerpSignalType[];
+  excludedReason?: 'blog' | 'no_indicator' | 'own_domain';
+}
+
+export interface SignalExtraction {
+  perResult: ResultClassification[];
+  aiOverviewDomains: string[];
+  signalTypesPresent: SerpSignalType[];
+}
+
+export interface Classification {
+  opportunityClass: OpportunityClass;
+  score: number;                       // White_Space_Score 0–100
+  reason: 'gap' | 'partial' | 'crowded' | 'commoditised' | 'unknown';
+}
+
+export interface CachedClassification {
+  keyword: string;
+  classification: Classification;
+  domains: string[];
+  signals: SerpSignalType[];
+  timestamp: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCORING_RUBRIC — single source of truth for thresholds, bands, and indicators.
+// No numeric thresholds or band values may be inlined elsewhere in the
+// classification path (R2.6, R11.3).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const SCORING_RUBRIC = {
+  // Competitor_Count → Opportunity_Class partition (R2.1–2.4).
+  thresholds: {
+    greenMax: 0,    // count === 0            → GREEN (gap)
+    yellowMax: 2,   // 1..2                   → YELLOW (partial)
+    crowdedMax: 6,  // 3..6                   → RED (crowded); >= 7 → RED (commoditised)
+  },
+  // White_Space_Score bands (R6.1–6.3): GREEN >= 75, YELLOW 40..74, RED < 40.
+  scoreBands: {
+    greenBase: 85,
+    yellowBase: 55,
+    redBase: 25,
+  },
+  // Report indicators (R3.7, R4.1): a result is a Competitor_Report only if it
+  // exhibits at least one of these.
+  reportIndicators: {
+    titlePatterns: [/market\s+size/i, /market\s+share/i, /market\s+forecast/i],
+    reportUrlPaths: [/\/(industry-)?report/i, /\/market-report/i, /-market\b/i],
+    pdfMarkers: [/\.pdf($|\?)/i],
+  },
+  // Blog/news/article URL patterns excluded unconditionally (R4.2).
+  blogPatterns: [/\/blog\//i, /\/news\//i, /\/article(s)?\//i, /\/press-release/i],
+  // Report-marketplace aggregator domains counted as Competitor_Reports (R3.5).
+  reportMarketplaces: ['researchandmarkets.com', 'reportlinker.com', 'marketresearch.com'],
+  // Kaiso's own domains, always excluded from Competitor_Count (R4.5).
+  ownDomains: ['kaiso'],
+} as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RUN_CONTROL — cost/rate/cache configuration, env-overridable with defaults.
+// runBudget is clamped to >= 1 (R9.1).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const RUN_CONTROL = {
+  runBudget: Math.max(1, Number(process.env.SERP_RUN_BUDGET ?? 12)),          // R9.1
+  interCallDelayMs: Math.max(0, Number(process.env.SERP_DELAY_MS ?? 1200)),   // R9.3
+  refreshWindowMs: Number(process.env.SERP_REFRESH_MS ?? 7 * 24 * 60 * 60 * 1000), // R8.4 (7d)
+  cachePath: process.env.SERP_CACHE_PATH ?? '/tmp/serp-cache.json',           // R8.5
+} as const;

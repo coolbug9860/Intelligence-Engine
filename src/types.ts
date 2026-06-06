@@ -100,6 +100,21 @@ export interface ForecastValidationEntry {
   isConfirmed: boolean;
 }
 
+// ── SERP Opportunity Detection (serpOpportunityDetectionService) ─────────────
+// Domain unions shared between ReportSuggestion and the detection service.
+// Defined here (not in the service) so ReportSuggestion can reference them
+// without a service→types→service import cycle.
+export type SerpSignalType =
+  | 'ORGANIC'
+  | 'PAID_AD'
+  | 'AI_OVERVIEW'
+  | 'SCHEMA_MARKUP'
+  | 'REPORT_MARKETPLACE'
+  | 'PDF'
+  | 'TITLE_PATTERN';
+
+export type OpportunityClass = 'GREEN' | 'YELLOW' | 'RED';
+
 export interface ReportSuggestion {
   id: string;
 
@@ -193,6 +208,12 @@ opportunityScore?: number;
   whiteSpaceLabel?: string;             // e.g. "🟢 Confirmed Gap" — ready for UI display
   whiteSpaceCompetitors?: string[];     // Names of competitors that already cover this topic
   whiteSpaceGapReason?: string;         // One-sentence explanation of gap or coverage
+
+  // SERP Opportunity Detection (serpOpportunityDetectionService) — additive, optional.
+  // Existing white-space fields above remain the unchanged downstream contract.
+  opportunityClass?: OpportunityClass;       // raw GREEN/YELLOW/RED band before status mapping
+  whiteSpaceSignals?: SerpSignalType[];      // SERP signal types that contributed to coverage
+  whiteSpaceSerpCached?: boolean;            // true when served from the SERP result cache
 
   // Action Classification — computed after whitespace + trends enrichment in server.ts
   actionVerdict?: 'PUBLISH NOW' | 'MONITOR' | 'PASS';
