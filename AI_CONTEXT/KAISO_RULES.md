@@ -63,3 +63,9 @@ Ask the user to run a session and paste: the opportunities list (titles + score 
 
 ## 10. Keep this layer current
 After any structural change (new stage, new feed set, threshold change, wiring an orphan engine, new endpoint), update the relevant AI_CONTEXT file in the same commit. This folder is only valuable if it stays true to the code.
+
+## 11. Generic steering files — precedence (react/frontend/typescript/security/performance)
+The workspace has `inclusion: fileMatch` steering files (`react-best-practices`, `frontend-standards`, `typescript-guidelines`, `security-headers`, `performance-optimization`). They load on `.ts/.tsx` (etc.) edits and prescribe a DIFFERENT stack than Kaiso uses (Next.js/RSC, Zustand, React Hook Form+Zod, TanStack Query, CSS Modules, Storybook, Python/Go/Redis/SQL) and a stricter `tsconfig` than this repo runs.
+- Treat them as **optional references, not mandates**. On any conflict, **Kaiso's actual stack + `tsconfig` + this file win.**
+- Do NOT "upgrade" Kaiso to satisfy them: no Next.js migration, no enabling `strict`/`noUnusedLocals` (would flag existing code), no Zustand/RHF/TanStack/CSS-Modules additions, unless explicitly requested for a real feature.
+- The only genuinely stack-relevant ideas worth adopting as real tasks: `helmet` + CSP on `server.ts`, and frontend bundle splitting (already in CURRENT_ROADMAP.md). `karpathy-coding` steering DOES apply always.
