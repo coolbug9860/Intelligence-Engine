@@ -33,6 +33,42 @@ interface ManagedKey {
 
 const KEY_RESET_MS = 60 * 60 * 1000; // 1 hour — quota windows typically reset hourly
 
+/** Pause for `ms` milliseconds (used for transient-error backoff). */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Transient = the model/endpoint is momentarily unavailable or the network
+ * blipped — retrying the SAME key after a short backoff usually succeeds.
+ * Distinct from quota errors (rotate key) and hard errors (fail fast).
+ * Covers Gemini 503 UNAVAILABLE ("high demand"/"overloaded") and 500 INTERNAL,
+ * plus common transport failures.
+ */
+function isTransientError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  const status = (err as { status?: number })?.status;
+  return (
+    msg.includes("503") ||
+    msg.includes("UNAVAILABLE") ||
+    msg.includes("overloaded") ||
+    msg.includes("high demand") ||
+    msg.includes("500") ||
+    msg.includes("INTERNAL") ||
+    msg.includes("ECONNRESET") ||
+    msg.includes("ETIMEDOUT") ||
+    msg.includes("socket hang up") ||
+    msg.includes("fetch failed") ||
+    status === 503 ||
+    status === 500
+  );
+}
+
+// Transient-error backoff: 3 retries on the same key at 2s, 4s, 8s.
+const TRANSIENT_MAX_RETRIES = 3;
+const TRANSIENT_BASE_DELAY_MS = 2000;
+const TRANSIENT_MAX_DELAY_MS = 8000;
+
 class GeminiKeyManager {
   private keys: ManagedKey[] = [];
   private currentIndex = 0;
@@ -110,6 +146,35 @@ class GeminiKeyManager {
   }
 
   /**
+   * Invoke the factory on one key, retrying on transient errors (503 overload,
+   * 500 INTERNAL, network blips) with exponential backoff. Quota and hard errors
+   * propagate immediately so the outer loop can rotate keys or fail fast.
+   */
+  private async callWithRetry<T>(
+    managed: ManagedKey,
+    factory: (client: GoogleGenAI, keyMasked: string) => Promise<T>
+  ): Promise<T> {
+    let delay = TRANSIENT_BASE_DELAY_MS;
+    for (let i = 0; ; i++) {
+      try {
+        return await factory(managed.client, managed.masked);
+      } catch (err: unknown) {
+        if (i < TRANSIENT_MAX_RETRIES && isTransientError(err)) {
+          const reason = err instanceof Error ? err.message.slice(0, 120) : String(err);
+          console.warn(
+            `[GeminiKeys] Transient error on ${managed.masked} ` +
+            `(attempt ${i + 1}/${TRANSIENT_MAX_RETRIES}) — retrying in ${delay}ms. ${reason}`
+          );
+          await sleep(delay);
+          delay = Math.min(delay * 2, TRANSIENT_MAX_DELAY_MS);
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
+  /**
    * Execute a Gemini API call with automatic key rotation on quota errors.
    * The caller provides a factory function that takes a GoogleGenAI client
    * and returns a Promise. On quota/rate-limit error, the next key is tried.
@@ -133,7 +198,7 @@ class GeminiKeyManager {
       }
 
       try {
-        const result = await factory(managed.client, managed.masked);
+        const result = await this.callWithRetry(managed, factory);
         // Success — advance round-robin for next call
         this.advance();
         return result;
