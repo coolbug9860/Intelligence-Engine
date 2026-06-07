@@ -21,7 +21,7 @@ This is THE object that flows through the entire live pipeline. It accretes fiel
 | Freshness | `freshnessLabel` | freshnessEngine |
 | Temporal | `signalLedger`, `forecastValidation`, `intelligenceProfile` | temporalIntelligenceEngine |
 | Trends (post) | `trendScore`, `trendDirection`, `trendDirectionLabel` | trendsService (server, post-pipeline) |
-| Whitespace (post) | `whiteSpaceStatus`, `whiteSpaceScore`, `whiteSpaceLabel`, `whiteSpaceCompetitors`, `whiteSpaceGapReason` | competitorWhitespaceService (server, post-pipeline) |
+| Whitespace (post) | `whiteSpaceStatus`, `whiteSpaceScore`, `whiteSpaceLabel`, `whiteSpaceCompetitors`, `whiteSpaceGapReason`, `opportunityClass`, `whiteSpaceSignals`, `whiteSpaceSerpCached` | serpOpportunityDetectionService (server, post-pipeline, Tavily) |
 | Verdict (post) | `actionVerdict`, `actionReason`, `actionScore`, `actionUrgency` | actionClassificationEngine (server, post-pipeline) |
 
 ### Fields that are DECLARED but effectively dead

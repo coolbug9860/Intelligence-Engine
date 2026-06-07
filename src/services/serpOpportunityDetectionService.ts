@@ -1,8 +1,8 @@
 /**
  * serpOpportunityDetectionService.ts
  *
- * SERP-based white-space / opportunity detection. Replaces the fixed
- * four-publisher scrape in competitorWhitespaceService.ts. Validates each
+ * SERP-based white-space / opportunity detection. Replaced the legacy fixed
+ * four-publisher scrape. Validates each
  * opportunity keyword against real search-engine results (via a SERP provider),
  * counts distinct competing syndicated-report domains across multiple signal
  * types, and produces a deterministic GREEN / YELLOW / RED classification mapped

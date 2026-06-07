@@ -222,17 +222,24 @@ sub-tasks placed next to the implementation they validate.
     - _Requirements: 9.3, 9.5_
 
 - [ ] 9. Demote the legacy service to a fallback and wire the fallback path
-  - [ ] 9.1 Export the legacy publisher-check helpers
-    - In `competitorWhitespaceService.ts`, additively export `checkPublisher` / `deriveWhiteSpaceResult` (no behavior change) for reuse as the fallback
-    - _Requirements: 1.6_
+- [x] 9. Demote the legacy service to a fallback and wire the fallback path
+  - **DEVIATION (decided with user):** The legacy `competitorWhitespaceService.ts` was NOT
+    retained as a fallback. Live run logs proved it is unreliable — Fortune Business Insights
+    returns zero parseable titles and Allied Market Research 500s on every call (only 2 of 4
+    publishers respond), and it produces false `CONFIRMED_GAP` verdicts (the exact defect this
+    feature removes). Wiring it as a degraded-mode fallback would resurrect those false positives
+    for a scenario that should not occur in production (it would only fire if `TAVILY_API_KEY`
+    were absent). Instead, when the provider is unavailable the service returns `UNKNOWN`
+    (implemented in Task 8) — the honest, safe degraded state — and the orphaned legacy file was
+    deleted. R1.6 is intentionally not implemented.
+  - [x] 9.1 Export the legacy publisher-check helpers — N/A (legacy file deleted)
+    - _Requirements: 1.6 (superseded)_
 
-  - [ ] 9.2 Invoke the legacy fallback when the provider is unavailable for the run
-    - When the provider is unavailable, derive a best-effort classification via the legacy fixed-publisher check before defaulting to UNKNOWN
-    - _Requirements: 1.6_
+  - [x] 9.2 Invoke the legacy fallback when the provider is unavailable for the run — N/A (UNKNOWN instead)
+    - _Requirements: 1.6 (superseded)_
 
-  - [ ]* 9.3 Write unit test for the legacy fallback path
-    - Verify the legacy check is invoked when the provider is unavailable and its result drives classification (else UNKNOWN)
-    - _Requirements: 1.6_
+  - [x]* 9.3 Write unit test for the legacy fallback path — N/A (no fallback; UNKNOWN path covered by Property 17)
+    - _Requirements: 1.6 (superseded)_
 
 - [x] 10. Wire the Detection_Service into the pipeline
   - [x] 10.1 Repoint the `server.ts` import
@@ -243,7 +250,7 @@ sub-tasks placed next to the implementation they validate.
     - Run `npm run lint` (tsc --noEmit) to confirm the repoint and new fields compile against the existing call site and the Action_Engine consumer
     - _Requirements: 10.7, 10.9_
 
-- [ ] 11. Final checkpoint - Ensure all tests pass
+- [x] 11. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

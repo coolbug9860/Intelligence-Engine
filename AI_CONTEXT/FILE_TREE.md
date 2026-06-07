@@ -80,7 +80,7 @@ Kaiso-Intelligence-OS/
         ├── edgarService.ts 🟠               SEC EDGAR fetch (+ /tmp cache)
         ├── rssService.ts 🟠                 client → /api/rss
         ├── trendsService.ts 🔵              Google Trends enrichment (often UNKNOWN on Render)
-        ├── competitorWhitespaceService.ts 🔵 publisher gap scan (2 of 4 working)
+        ├── serpOpportunityDetectionService.ts ✅ SERP white-space detection (Tavily; replaced legacy scrape)
         ├── actionClassificationEngine.ts ✅  PUBLISH/MONITOR/PASS verdict (threshold 68)
         ├── briefExportServer.ts 🟠          DOCX export
         │
@@ -101,6 +101,6 @@ Kaiso-Intelligence-OS/
 - **Change the prompt / Gemini behavior** → `geminiService.ts`.
 - **Add/fix a data feed** → `server.ts` (`STABLE_RSS_FEEDS`) or `edgarService.ts`.
 - **Change pipeline order / add a stage** → `intelligenceOrchestrator.ts`.
-- **Whitespace / trends** → `competitorWhitespaceService.ts` / `trendsService.ts`.
+- **Whitespace / trends** → `serpOpportunityDetectionService.ts` / `trendsService.ts`.
 - **Frontend dashboard** → `App.tsx`; **detail page** → `pages/OpportunityDetail.tsx`.
 - **API routes / auth / CORS / caching** → `server.ts`.

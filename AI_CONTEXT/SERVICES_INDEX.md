@@ -128,5 +128,5 @@ geminiService ─┐
                ├→ orchestrator ──(per signal)→ sourceAuthority → validation → taxonomy → scoring → freshness
 edgarService ──┘                  └→ temporal → dedup → diversity → reasoning → graph → propagation
 server.ts ingests RSS                                                              → forecast → evolution → priority → memory
-server.ts post: trendsService → competitorWhitespaceService → actionClassificationEngine
+server.ts post: trendsService → serpOpportunityDetectionService → actionClassificationEngine
 ```
