@@ -15,6 +15,8 @@
  */
 
 import type { SerpSignalType, OpportunityClass, ReportSuggestion } from '../types';
+import { readFileSync } from 'fs';
+import { writeFile } from 'fs/promises';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INTERNAL TYPES (pure-core data shapes)
@@ -417,4 +419,153 @@ export function toWhiteSpaceFields(
     whiteSpaceSignals: signals,
     opportunityClass: cls,
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// I/O SHELL — SERP provider (Google Custom Search JSON API) and result cache.
+// Provider-agnostic interface; one concrete vendor implementation. Mock-tested.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Provider-agnostic SERP client. One implementation per vendor. */
+export interface SerpProvider {
+  /** True when a usable API credential is configured for this run (R7.2). */
+  isConfigured(): boolean;
+  /** Fetch a SerpResponse for one keyword; rejects with SerpProviderError. */
+  search(keyword: string): Promise<SerpResponse>;
+}
+
+/** Carries the failure class so the I/O shell can tell credential errors
+ * (skip-all) from transient per-keyword failures (mark one UNKNOWN). */
+export class SerpProviderError extends Error {
+  constructor(message: string, public code: string, public keyword: string) {
+    super(message);
+    this.name = 'SerpProviderError';
+  }
+}
+
+interface GoogleCseItem {
+  title?: string;
+  link?: string;
+  displayLink?: string;
+  snippet?: string;
+  pagemap?: Record<string, unknown>;
+}
+interface GoogleCsePayload {
+  items?: GoogleCseItem[];
+}
+
+/** Minimal fetch surface so the provider is unit-testable without the network. */
+type FetchLike = (url: string) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
+
+/** Best-effort schema.org Report/Product detection from the CSE pagemap (R3.4);
+ * never the sole competitor signal. */
+function detectReportSchema(pagemap?: Record<string, unknown>): boolean {
+  if (!pagemap) return false;
+  const keys = Object.keys(pagemap).map((k) => k.toLowerCase());
+  return keys.includes('product') || keys.includes('report') || keys.includes('offer');
+}
+
+/** R1.3 — normalize a Google CSE payload into the internal SerpResponse. Free
+ * CSE exposes only organic results (no ads / AI Overview), so those are empty. */
+export function normalizeGoogleCse(keyword: string, payload: GoogleCsePayload): SerpResponse {
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+  const organic: SerpOrganicResult[] = items.map((it) => {
+    const link = it.link ?? '';
+    return {
+      title: it.title ?? '',
+      link,
+      domain: extractDomain(link) || (it.displayLink ?? '').toLowerCase(),
+      snippet: it.snippet,
+      hasReportSchema: detectReportSchema(it.pagemap),
+    };
+  });
+  return { keyword, organic, ads: [], aiOverviewSources: [] };
+}
+
+/**
+ * R1.2 / R1.3 / R7.2 — Google Custom Search JSON API provider. Reads
+ * GOOGLE_CSE_KEY + GOOGLE_CSE_ID; free tier is 100 queries/day and commercial-
+ * use OK. `isConfigured()` is false when either credential is absent.
+ */
+export class GoogleCseProvider implements SerpProvider {
+  constructor(
+    private readonly key: string = (process.env.GOOGLE_CSE_KEY ?? '').trim(),
+    private readonly cx: string = (process.env.GOOGLE_CSE_ID ?? '').trim(),
+    private readonly fetchFn: FetchLike = (url) => fetch(url),
+  ) {}
+
+  isConfigured(): boolean {
+    return this.key.length > 0 && this.cx.length > 0;
+  }
+
+  async search(keyword: string): Promise<SerpResponse> {
+    if (!this.isConfigured()) {
+      throw new SerpProviderError('Google CSE credentials missing', 'NO_CREDENTIAL', keyword);
+    }
+    const url =
+      `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(this.key)}` +
+      `&cx=${encodeURIComponent(this.cx)}&q=${encodeURIComponent(keyword)}&num=10`;
+
+    let res: { ok: boolean; status: number; json: () => Promise<unknown> };
+    try {
+      res = await this.fetchFn(url);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new SerpProviderError(`Google CSE request failed: ${msg}`, 'NETWORK', keyword);
+    }
+    if (!res.ok) {
+      const code = res.status === 429 ? 'RATE_LIMIT' : res.status === 403 ? 'FORBIDDEN' : `HTTP_${res.status}`;
+      throw new SerpProviderError(`Google CSE HTTP ${res.status}`, code, keyword);
+    }
+    const payload = (await res.json()) as GoogleCsePayload;
+    return normalizeGoogleCse(keyword, payload);
+  }
+}
+
+/** Per-run result cache keyed by normalized Search_Keyword. */
+export interface ResultCache {
+  get(key: string, now: number, refreshWindowMs: number): CachedClassification | null;
+  set(key: string, value: CachedClassification, now: number): void;
+  flush(): Promise<void>;
+}
+
+/**
+ * R8.1/8.3/8.4/8.5 — JSON-file result cache. Loads once per run, serves entries
+ * keyed by normalized keyword, treats missing/stale (age > Refresh_Window)
+ * entries as misses, and flushes to disk once at run end. A read/parse error is
+ * treated as an empty cache (non-fatal).
+ */
+export class FileResultCache implements ResultCache {
+  private store = new Map<string, CachedClassification>();
+  private loaded = false;
+
+  constructor(private readonly path: string = RUN_CONTROL.cachePath) {}
+
+  private load(): void {
+    if (this.loaded) return;
+    this.loaded = true;
+    try {
+      const data = JSON.parse(readFileSync(this.path, 'utf-8')) as Record<string, CachedClassification>;
+      for (const [k, v] of Object.entries(data)) this.store.set(k, v);
+    } catch {
+      // Missing or corrupt cache file → start empty (R8, non-fatal).
+    }
+  }
+
+  get(key: string, now: number, refreshWindowMs: number): CachedClassification | null {
+    this.load();
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    if (now - entry.timestamp > refreshWindowMs) return null; // stale → miss (R8.4)
+    return entry;
+  }
+
+  set(key: string, value: CachedClassification, now: number): void {
+    this.load();
+    this.store.set(key, { ...value, timestamp: now }); // current timestamp (R8.3)
+  }
+
+  async flush(): Promise<void> {
+    await writeFile(this.path, JSON.stringify(Object.fromEntries(this.store)), 'utf-8');
+  }
 }

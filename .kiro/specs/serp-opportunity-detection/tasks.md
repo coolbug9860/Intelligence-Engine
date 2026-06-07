@@ -157,21 +157,21 @@ sub-tasks placed next to the implementation they validate.
 - [x] 6. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement the I/O shell: provider and result cache
-  - [ ] 7.1 Implement the `SerpProvider` interface and `SerpApiProvider`
-    - Define `SerpProvider` (`isConfigured()`, `search(keyword)`), implement `SerpApiProvider` reading `SERP_API_KEY`, normalize the vendor payload into the internal `SerpResponse`, and add `SerpProviderError extends Error` carrying `{ code, keyword }`
-    - `isConfigured()` returns false when the credential is absent
+- [x] 7. Implement the I/O shell: provider and result cache
+  - [x] 7.1 Implement the `SerpProvider` interface and `GoogleCseProvider`
+    - Define `SerpProvider` (`isConfigured()`, `search(keyword)`), implement `GoogleCseProvider` reading `GOOGLE_CSE_KEY` + `GOOGLE_CSE_ID` (Google Custom Search JSON API — free 100/day, commercial-OK), normalize the vendor payload into the internal `SerpResponse` (organic only; free CSE exposes no ads/AI-overview), and add `SerpProviderError extends Error` carrying `{ code, keyword }`
+    - `isConfigured()` returns false when either credential is absent
     - _Requirements: 1.2, 1.3, 7.2_
 
-  - [ ]* 7.2 Write unit test for provider invocation and payload normalization
+  - [x]* 7.2 Write unit test for provider invocation and payload normalization
     - Verify `search` is called with the normalized keyword and the payload maps into `SerpResponse` (organic/ads/AI-overview)
     - _Requirements: 1.2, 1.3_
 
-  - [ ] 7.3 Implement `FileResultCache`
+  - [x] 7.3 Implement `FileResultCache`
     - Load `SERP_CACHE_PATH` once per run, serve entries keyed by normalized Search_Keyword, return `null` for missing or stale (age > Refresh_Window) entries, write entries with the current timestamp, and `flush()` to disk once at run end; treat read/parse errors as an empty cache
     - _Requirements: 8.1, 8.3, 8.4, 8.5_
 
-  - [ ]* 7.4 Write integration test for cache persistence
+  - [x]* 7.4 Write integration test for cache persistence
     - Verify `FileResultCache.flush()` writes JSON to `SERP_CACHE_PATH` and a fresh instance reloads it
     - _Requirements: 8.5_
 
