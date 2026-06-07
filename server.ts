@@ -14,7 +14,7 @@ import {
 import { fetchEdgarSignals } from "./src/services/edgarService";
 import { generateBriefDocxBuffer } from "./src/services/briefExportServer";
 import { enrichWithTrends } from "./src/services/trendsService";
-import { enrichWithWhiteSpaceDetection } from "./src/services/competitorWhitespaceService";
+import { enrichWithWhiteSpaceDetection } from "./src/services/serpOpportunityDetectionService";
 import { classifyPortfolio } from "./src/services/actionClassificationEngine";
 
 dotenv.config();
@@ -711,10 +711,12 @@ app.post("/api/intelligence/run", async (req, res) => {
       }
     }
 
-    // Enrich the final 8 suggestions with competitor white space detection
-    // Checks Grand View Research, MarketsandMarkets, Mordor Intelligence,
-    // and Allied Market Research for existing coverage of each opportunity.
-    // Non-fatal: if scrapes fail, suggestions are returned unchanged.
+    // Enrich the final suggestions with SERP-based competitor white space
+    // detection (serpOpportunityDetectionService): validates each opportunity
+    // keyword against real search results via the Tavily provider, counts
+    // distinct competing report domains, and maps to the whiteSpace* contract.
+    // Non-fatal: on any failure or missing credential, suggestions return with
+    // whiteSpaceStatus UNKNOWN rather than breaking the pipeline.
     if (state?.curatedPortfolio?.length) {
       try {
         state.curatedPortfolio = await enrichWithWhiteSpaceDetection(state.curatedPortfolio);

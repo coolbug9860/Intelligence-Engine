@@ -234,12 +234,12 @@ sub-tasks placed next to the implementation they validate.
     - Verify the legacy check is invoked when the provider is unavailable and its result drives classification (else UNKNOWN)
     - _Requirements: 1.6_
 
-- [ ] 10. Wire the Detection_Service into the pipeline
-  - [ ] 10.1 Repoint the `server.ts` import
+- [x] 10. Wire the Detection_Service into the pipeline
+  - [x] 10.1 Repoint the `server.ts` import
     - Change the line 17 import source from `competitorWhitespaceService` to `serpOpportunityDetectionService`; leave the call site at line 720 unchanged
     - _Requirements: 10.7, 10.9_
 
-  - [ ]* 10.2 Verify the build/typecheck passes end-to-end
+  - [x]* 10.2 Verify the build/typecheck passes end-to-end
     - Run `npm run lint` (tsc --noEmit) to confirm the repoint and new fields compile against the existing call site and the Action_Engine consumer
     - _Requirements: 10.7, 10.9_
 
