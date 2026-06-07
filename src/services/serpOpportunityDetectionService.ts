@@ -109,6 +109,10 @@ export const RUN_CONTROL = {
   cachePath: process.env.SERP_CACHE_PATH ?? '/tmp/serp-cache.json',           // R8.5
 } as const;
 
+/** The rubric shape, derived from the single source-of-truth object so the pure
+ * core can be unit-tested with the real config or a stub of the same shape. */
+export type ScoringRubric = typeof SCORING_RUBRIC;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PURE CORE — keyword normalization, title matching, derivation, domain extract.
 // Deterministic, no I/O. Property-tested (Properties 3–6).
@@ -197,4 +201,126 @@ export function extractDomain(link: string): string {
   } catch {
     return '';
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PURE CORE — single-result classification, signal extraction, competitor count.
+// Deterministic, no I/O. Property-tested (Properties 8–10).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** R4.5 — a Kaiso-owned domain, always excluded from Competitor_Count. */
+function isOwnDomain(domain: string, config: ScoringRubric): boolean {
+  return config.ownDomains.some((d) => domain.includes(d));
+}
+
+/** R3.5 — a report-marketplace aggregator (exact host or sub-host). */
+function isReportMarketplace(domain: string, config: ScoringRubric): boolean {
+  return config.reportMarketplaces.some((m) => domain === m || domain.endsWith('.' + m));
+}
+
+/**
+ * R3.4–3.7 / R4.1–4.5 / Property 8 — classify a single result as a
+ * Competitor_Report iff it exhibits ≥1 report indicator (report-style URL path,
+ * "Market Size/Share/Forecast" title pattern, schema.org Report/Product markup,
+ * Report_Marketplace domain, or PDF) AND its domain is not Kaiso-owned AND it is
+ * not a blog/news/article URL. The blog exclusion overrides any indicators; a
+ * paywalled result is still counted (paywall is not an exclusion).
+ */
+export function classifyResult(
+  result: SerpOrganicResult,
+  _keyword: string,
+  config: ScoringRubric,
+): ResultClassification {
+  const domain = result.domain || extractDomain(result.link);
+  const url = result.link ?? '';
+  const matchedSignals: SerpSignalType[] = [];
+
+  // Own-domain exclusion (R4.5) — overrides everything.
+  if (isOwnDomain(domain, config)) {
+    return { domain, isCompetitorReport: false, matchedSignals, excludedReason: 'own_domain' };
+  }
+
+  // Blog/news/article exclusion (R4.2) — overrides any report indicators.
+  if (config.blogPatterns.some((re) => re.test(url))) {
+    return { domain, isCompetitorReport: false, matchedSignals, excludedReason: 'blog' };
+  }
+
+  // Report indicators (R3.4–3.7, R4.1).
+  if (config.reportIndicators.titlePatterns.some((re) => re.test(result.title))) {
+    matchedSignals.push('TITLE_PATTERN');
+  }
+  if (result.hasReportSchema) {
+    matchedSignals.push('SCHEMA_MARKUP');
+  }
+  if (isReportMarketplace(domain, config)) {
+    matchedSignals.push('REPORT_MARKETPLACE');
+  }
+  if (config.reportIndicators.pdfMarkers.some((re) => re.test(url))) {
+    matchedSignals.push('PDF');
+  }
+  // Report-style URL path is an indicator but maps to no named SerpSignalType.
+  const hasReportUrl = config.reportIndicators.reportUrlPaths.some((re) => re.test(url));
+
+  const isCompetitorReport = matchedSignals.length > 0 || hasReportUrl;
+  return isCompetitorReport
+    ? { domain, isCompetitorReport: true, matchedSignals }
+    : { domain, isCompetitorReport: false, matchedSignals, excludedReason: 'no_indicator' };
+}
+
+/**
+ * R3.1–3.3 / R3.8 / Property 9 — extract every SERP_Signal from a full response.
+ * Classifies organic and paid results and pulls AI Overview cited domains;
+ * records which signal types contributed to the counted Competitor_Reports.
+ */
+export function extractSignals(
+  response: SerpResponse,
+  keyword: string,
+  config: ScoringRubric,
+): SignalExtraction {
+  const perResult: ResultClassification[] = [];
+  const signalTypesPresent = new Set<SerpSignalType>();
+
+  const ingest = (results: SerpOrganicResult[], source: 'ORGANIC' | 'PAID_AD') => {
+    for (const r of results) {
+      const c = classifyResult(r, keyword, config);
+      if (c.isCompetitorReport) {
+        signalTypesPresent.add(source);
+        c.matchedSignals.forEach((sig) => signalTypesPresent.add(sig));
+      }
+      perResult.push(c);
+    }
+  };
+
+  ingest(response.organic, 'ORGANIC');   // R3.1
+  ingest(response.ads, 'PAID_AD');       // R3.2
+
+  // R3.3 — AI Overview cited domains count as coverage (own-domains excluded).
+  const aiOverviewDomains = response.aiOverviewSources
+    .map((d) => d.toLowerCase())
+    .filter((d) => d.length > 0 && !isOwnDomain(d, config));
+  if (aiOverviewDomains.length > 0) signalTypesPresent.add('AI_OVERVIEW');
+
+  return { perResult, aiOverviewDomains, signalTypesPresent: Array.from(signalTypesPresent) };
+}
+
+/**
+ * R2.5 / R4.3 / R10.8 / Property 10 — Competitor_Count is the number of distinct
+ * competing publisher domains across organic/paid Competitor_Reports plus AI
+ * Overview cited domains, de-duplicated and with Kaiso-owned domains excluded.
+ */
+export function countCompetitors(
+  extraction: SignalExtraction,
+  config: ScoringRubric,
+): { count: number; domains: string[] } {
+  const domains = new Set<string>();
+  for (const r of extraction.perResult) {
+    if (r.isCompetitorReport && r.domain && !isOwnDomain(r.domain, config)) {
+      domains.add(r.domain);
+    }
+  }
+  for (const d of extraction.aiOverviewDomains) {
+    if (d && !isOwnDomain(d, config)) domains.add(d);
+  }
+  const list = Array.from(domains);
+  return { count: list.length, domains: list };
 }

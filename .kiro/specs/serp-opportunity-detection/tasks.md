@@ -82,33 +82,33 @@ sub-tasks placed next to the implementation they validate.
 - [x] 3. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement single-result classification and signal extraction
-  - [ ] 4.1 Implement `classifyResult`
+- [x] 4. Implement single-result classification and signal extraction
+  - [x] 4.1 Implement `classifyResult`
     - Mark a result as Competitor_Report iff it has ≥1 report indicator (report-style URL path, "Market Size/Share/Forecast" title pattern, schema.org Report/Product markup, or Report_Marketplace domain) AND its domain is not a Kaiso own-domain
     - Exclude blog/news/article results unconditionally — regardless of any report indicators they exhibit, the blog/news/article exclusion overrides those indicators; count paywalled results that carry a title pattern or schema markup only when the URL is not a blog/news/article pattern; detect PDF results
     - _Requirements: 3.4, 3.5, 3.6, 3.7, 4.1, 4.2, 4.4, 4.5_
 
-  - [ ]* 4.2 Write property test for `classifyResult`
+  - [x]* 4.2 Write property test for `classifyResult`
     - **Property 8: Competitor_Report classification is exactly the indicator biconditional**
     - **Validates: Requirements 3.4, 3.5, 3.7, 4.1, 4.2, 4.4, 4.5**
 
-  - [ ]* 4.3 Write edge-case unit tests for `classifyResult`
+  - [x]* 4.3 Write edge-case unit tests for `classifyResult`
     - Cover PDF detection (R3.6) and paywalled-with-indicator results (R4.4) explicitly
     - _Requirements: 3.6, 4.4_
 
-  - [ ] 4.4 Implement `extractSignals` across organic, paid, and AI-Overview blocks
+  - [x] 4.4 Implement `extractSignals` across organic, paid, and AI-Overview blocks
     - Classify organic and paid results and pull AI Overview cited domains into a `SignalExtraction`; record which `SerpSignalType`s are present
     - _Requirements: 3.1, 3.2, 3.3, 3.8_
 
-  - [ ]* 4.5 Write property test for `extractSignals` coverage sources
+  - [x]* 4.5 Write property test for `extractSignals` coverage sources
     - **Property 9: Coverage is detected across organic, paid, and AI-Overview sources**
     - **Validates: Requirements 3.1, 3.2, 3.3**
 
-  - [ ] 4.6 Implement `countCompetitors`
+  - [x] 4.6 Implement `countCompetitors`
     - Count distinct competitor domains once each and return the de-duplicated domain list
     - _Requirements: 2.5, 4.3, 10.8_
 
-  - [ ]* 4.7 Write property test for `countCompetitors`
+  - [x]* 4.7 Write property test for `countCompetitors`
     - **Property 10: Competitor_Count is the distinct-domain count**
     - **Validates: Requirements 2.5, 4.3, 10.8**
 
