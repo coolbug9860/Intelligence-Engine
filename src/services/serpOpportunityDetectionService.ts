@@ -561,3 +561,147 @@ export class FileResultCache implements ResultCache {
     await writeFile(this.path, JSON.stringify(Object.fromEntries(this.store)), 'utf-8');
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ORCHESTRATION — enrichWithWhiteSpaceDetection. Wires the pure core + I/O shell
+// with per-run keyword de-duplication, budget cap, caching, inter-call delay,
+// and non-fatal error handling. Same exported signature as the legacy service.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type RunControlConfig = { runBudget: number; interCallDelayMs: number; refreshWindowMs: number };
+
+/** Injectable dependencies — production wiring is filled in by default so
+ * `server.ts` can call `enrichWithWhiteSpaceDetection(suggestions)` with no deps;
+ * tests inject a MockSerpProvider, in-memory cache, clock, and sleep spy. */
+export interface DetectionDeps {
+  provider: SerpProvider;
+  cache: ResultCache;
+  rubric: ScoringRubric;
+  runControl: RunControlConfig;
+  now: () => number;
+  sleep: (ms: number) => Promise<void>;
+}
+
+const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+function resolveDeps(d: Partial<DetectionDeps>): DetectionDeps {
+  return {
+    provider: d.provider ?? new TavilyProvider(),
+    cache: d.cache ?? new FileResultCache(),
+    rubric: d.rubric ?? SCORING_RUBRIC,
+    runControl: d.runControl ?? RUN_CONTROL,
+    now: d.now ?? (() => Date.now()),
+    sleep: d.sleep ?? defaultSleep,
+  };
+}
+
+/** Merge derived white-space fields onto a suggestion without disturbing the
+ * rest of it, and record whether the result was served from cache (R9.4). */
+function applyFields(
+  suggestion: ReportSuggestion,
+  fields: WhiteSpaceFields,
+  cached: boolean,
+): ReportSuggestion {
+  return { ...suggestion, ...fields, whiteSpaceSerpCached: cached };
+}
+
+/** UNKNOWN fields — used for empty keyword, absent credential, budget exhausted,
+ * provider failure, and unexpected errors. */
+const UNKNOWN_FIELDS: WhiteSpaceFields = { whiteSpaceStatus: 'UNKNOWN' };
+
+async function runDetection(
+  suggestions: ReportSuggestion[],
+  deps: DetectionDeps,
+): Promise<ReportSuggestion[]> {
+  const { provider, cache, rubric, runControl, now, sleep } = deps;
+  const credentialOk = provider.isConfigured(); // R7.2
+  const attempts = new Map<string, { fields: WhiteSpaceFields; cached: boolean }>(); // R5.4/5.5
+  let billableCalls = 0;
+  let madeAnyCall = false;
+  const out: ReportSuggestion[] = [];
+
+  for (const suggestion of suggestions) {
+    try {
+      const keyword = deriveSearchKeyword(suggestion);
+
+      // R1.5 empty keyword, R7.2 absent credential → UNKNOWN, no provider call.
+      if (!keyword || !credentialOk) {
+        out.push(applyFields(suggestion, UNKNOWN_FIELDS, false));
+        continue;
+      }
+
+      // R5.4/5.5 — reuse a prior attempt (success or failure) for this keyword.
+      const memo = attempts.get(keyword);
+      if (memo) {
+        out.push(applyFields(suggestion, memo.fields, memo.cached));
+        continue;
+      }
+
+      // R8.1/8.2/8.4/9.4 — fresh cache hit avoids a billable call and budget.
+      const hit = cache.get(keyword, now(), runControl.refreshWindowMs);
+      if (hit) {
+        const fields = toWhiteSpaceFields(hit.classification, hit.domains, hit.signals);
+        attempts.set(keyword, { fields, cached: true });
+        out.push(applyFields(suggestion, fields, true));
+        continue;
+      }
+
+      // R9.2 — budget cap: remaining unprocessed keywords become UNKNOWN.
+      if (billableCalls >= runControl.runBudget) {
+        attempts.set(keyword, { fields: UNKNOWN_FIELDS, cached: false });
+        out.push(applyFields(suggestion, UNKNOWN_FIELDS, false));
+        continue;
+      }
+
+      // R9.3 — inter-call delay between billable provider calls.
+      if (madeAnyCall && runControl.interCallDelayMs > 0) await sleep(runControl.interCallDelayMs);
+      madeAnyCall = true;
+      billableCalls++;
+
+      try {
+        const response = await provider.search(keyword);
+        const extraction = extractSignals(response, keyword, rubric);
+        const { count, domains } = countCompetitors(extraction, rubric);
+        const classification = applyRubric(count, extraction.signalTypesPresent, rubric);
+        cache.set(keyword, { keyword, classification, domains, signals: extraction.signalTypesPresent, timestamp: now() }, now()); // R8.3
+        const fields = toWhiteSpaceFields(classification, domains, extraction.signalTypesPresent);
+        attempts.set(keyword, { fields, cached: false });
+        out.push(applyFields(suggestion, fields, false));
+      } catch (err) {
+        // R7.1 — isolate provider failure to this keyword; memo so dupes don't retry.
+        console.error(`[WhiteSpace] Provider failed for "${keyword}":`, err instanceof Error ? err.message : err);
+        attempts.set(keyword, { fields: UNKNOWN_FIELDS, cached: false });
+        out.push(applyFields(suggestion, UNKNOWN_FIELDS, false));
+      }
+    } catch (err) {
+      // R7.3 — per-suggestion guard: never throw out of the loop.
+      console.error('[WhiteSpace] Unexpected error classifying a suggestion:', err);
+      out.push(applyFields(suggestion, UNKNOWN_FIELDS, false));
+    }
+  }
+
+  try {
+    await cache.flush(); // R8.5
+  } catch (err) {
+    console.error('[WhiteSpace] Cache flush failed:', err);
+  }
+  console.info(`[WhiteSpace] Complete — ${billableCalls} billable SERP call(s) this run.`); // R9.5
+  return out;
+}
+
+/**
+ * R1.x/5.x/7.x/8.x/9.x — classify each suggestion's competitive white space via
+ * SERP signals and map onto the legacy whiteSpace* contract. Non-fatal: always
+ * resolves to an array of the same length, never throws (R7.3/7.4).
+ */
+export async function enrichWithWhiteSpaceDetection(
+  suggestions: ReportSuggestion[],
+  deps: Partial<DetectionDeps> = {},
+): Promise<ReportSuggestion[]> {
+  try {
+    return await runDetection(suggestions, resolveDeps(deps));
+  } catch (err) {
+    console.error('[WhiteSpace] Detection aborted; returning input unchanged.', err);
+    return suggestions;
+  }
+}

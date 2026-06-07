@@ -175,49 +175,49 @@ sub-tasks placed next to the implementation they validate.
     - Verify `FileResultCache.flush()` writes JSON to `SERP_CACHE_PATH` and a fresh instance reloads it
     - _Requirements: 8.5_
 
-- [ ] 8. Implement the `enrichWithWhiteSpaceDetection` orchestration entry point
-  - [ ] 8.1 Wire the per-suggestion classification flow with injectable `DetectionDeps`
+- [x] 8. Implement the `enrichWithWhiteSpaceDetection` orchestration entry point
+  - [x] 8.1 Wire the per-suggestion classification flow with injectable `DetectionDeps`
     - For each suggestion: derive keyword → short-circuit empty keyword to UNKNOWN without a provider call → check cache → enforce budget → call provider with inter-call delay → extract signals → count → apply rubric → map fields; default `deps` to real provider/cache/config/clock
     - De-duplicate provider calls per distinct normalized keyword within a run (reusing successes and failures), skip billable calls on fresh cache hits, cap billable calls at `Run_Budget` and mark remaining UNKNOWN, apply the configurable inter-call delay, and set `whiteSpaceSerpCached`
     - _Requirements: 1.2, 5.4, 5.5, 8.1, 8.2, 9.2, 9.3, 9.4_
 
-  - [ ] 8.2 Add non-fatal error handling and run logging
+  - [x] 8.2 Add non-fatal error handling and run logging
     - Per-suggestion try/catch plus a top-level guard so the service never throws and always returns an array of the same length; provider failure isolates one keyword to UNKNOWN; absent credential skips all lookups; log errors with the `[WhiteSpace]` prefix and log the billable call count once per run
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 9.5_
 
-  - [ ]* 8.3 Write property test for empty-keyword short-circuit
+  - [x]* 8.3 Write property test for empty-keyword short-circuit
     - **Property 7: Empty keyword yields UNKNOWN without a provider call**
     - **Validates: Requirements 1.5**
 
-  - [ ]* 8.4 Write property test for length preservation / never throws
+  - [x]* 8.4 Write property test for length preservation / never throws
     - **Property 15: Output length is preserved and the service never throws**
     - **Validates: Requirements 7.3, 7.4**
 
-  - [ ]* 8.5 Write property test for provider-failure isolation
+  - [x]* 8.5 Write property test for provider-failure isolation
     - **Property 16: Provider failure isolates to UNKNOWN and processing continues**
     - **Validates: Requirements 7.1**
 
-  - [ ]* 8.6 Write property test for absent credential
+  - [x]* 8.6 Write property test for absent credential
     - **Property 17: Absent credential skips all lookups**
     - **Validates: Requirements 7.2**
 
-  - [ ]* 8.7 Write property test for per-keyword call de-duplication
+  - [x]* 8.7 Write property test for per-keyword call de-duplication
     - **Property 18: Each distinct keyword is queried at most once per run**
     - **Validates: Requirements 5.4, 5.5**
 
-  - [ ]* 8.8 Write property test for fresh-cache-hit call avoidance
+  - [x]* 8.8 Write property test for fresh-cache-hit call avoidance
     - **Property 19: Fresh cache hits avoid billable calls**
     - **Validates: Requirements 8.1, 8.2, 8.4, 9.4**
 
-  - [ ]* 8.9 Write property test for caching successful classifications
+  - [x]* 8.9 Write property test for caching successful classifications
     - **Property 20: Successful classifications are cached with a timestamp**
     - **Validates: Requirements 8.3**
 
-  - [ ]* 8.10 Write property test for the Run_Budget cap
+  - [x]* 8.10 Write property test for the Run_Budget cap
     - **Property 21: Billable calls never exceed the Run_Budget**
     - **Validates: Requirements 9.2**
 
-  - [ ]* 8.11 Write unit tests for delay and billable-count logging
+  - [x]* 8.11 Write unit tests for delay and billable-count logging
     - Use fake timers to assert the inter-call delay is applied and the billable call count is logged once per run
     - _Requirements: 9.3, 9.5_
 
