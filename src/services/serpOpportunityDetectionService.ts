@@ -499,7 +499,11 @@ export class TavilyProvider implements SerpProvider {
       res = await this.fetchFn('https://api.tavily.com/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.key}` },
-        body: JSON.stringify({ query: keyword, search_depth: 'basic', max_results: 10 }),
+        // The normalized keyword has its trailing "market" stripped (it doubles as
+        // the cache key). Restore commercial intent for the query so Tavily retrieves
+        // syndicated-report listings ("X Market Size, Share & Forecast") rather than
+        // general news for hot, newsy topics (which produced false CONFIRMED_GAPs).
+        body: JSON.stringify({ query: `${keyword} market size`, search_depth: 'basic', max_results: 10 }),
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -663,6 +667,10 @@ async function runDetection(
         const extraction = extractSignals(response, keyword, rubric);
         const { count, domains } = countCompetitors(extraction, rubric);
         const classification = applyRubric(count, extraction.signalTypesPresent, rubric);
+        console.info(
+          `[WhiteSpace] "${keyword}" → ${classification.opportunityClass} ` +
+          `(${domains.length} competitor domain(s)${domains.length ? ': ' + domains.join(', ') : ''})`,
+        );
         cache.set(keyword, { keyword, classification, domains, signals: extraction.signalTypesPresent, timestamp: now() }, now()); // R8.3
         const fields = toWhiteSpaceFields(classification, domains, extraction.signalTypesPresent);
         attempts.set(keyword, { fields, cached: false });

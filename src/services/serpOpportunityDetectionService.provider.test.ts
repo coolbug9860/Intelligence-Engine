@@ -47,14 +47,15 @@ describe('TavilyProvider.search', () => {
   it('POSTs the keyword to the Tavily endpoint and normalizes the payload', async () => {
     const capture: { url?: string; init?: any } = {};
     const provider = new TavilyProvider('tvly-key', okFetch(capture));
-    const res = await provider.search('widget market');
+    const res = await provider.search('electric vehicle battery');
 
     expect(capture.url).toBe('https://api.tavily.com/search');
     expect(capture.init?.method).toBe('POST');
-    expect(String(capture.init?.body)).toContain('widget market');
+    expect(String(capture.init?.body)).toContain('electric vehicle battery');
+    expect(String(capture.init?.body)).toContain('market size'); // commercial intent restored
     expect(String(capture.init?.headers?.Authorization)).toContain('tvly-key');
 
-    expect(res.keyword).toBe('widget market');
+    expect(res.keyword).toBe('electric vehicle battery');
     expect(res.organic).toHaveLength(2);
     expect(res.organic[0].domain).toBe('grandviewresearch.com');
     expect(res.organic[0].snippet).toBe('The widget market is...');
