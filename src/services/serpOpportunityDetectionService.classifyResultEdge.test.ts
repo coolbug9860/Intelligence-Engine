@@ -45,4 +45,18 @@ describe('classifyResult edge cases', () => {
     expect(c.isCompetitorReport).toBe(false);
     expect(c.excludedReason).toBe('blog');
   });
+
+  it('excludes non-competitor domains (govt / social / data portals) — Fork B', () => {
+    const cases: Array<[string, string]> = [
+      ['https://www.fda.gov/widget-market-size', 'www.fda.gov'],
+      ['https://media.defense.gov/widget-market-report', 'media.defense.gov'],
+      ['https://www.linkedin.com/pulse/widget-market-size', 'www.linkedin.com'],
+      ['https://www.statista.com/widget-market', 'www.statista.com'],
+    ];
+    for (const [link, domain] of cases) {
+      const c = classifyResult({ title: 'Widget Market Size Report', link, domain }, 'widget', SCORING_RUBRIC);
+      expect(c.isCompetitorReport).toBe(false);
+      expect(c.excludedReason).toBe('non_competitor');
+    }
+  });
 });

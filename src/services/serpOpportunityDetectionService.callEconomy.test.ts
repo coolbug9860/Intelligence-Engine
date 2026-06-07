@@ -120,7 +120,7 @@ describe('Property 19: fresh cache hits avoid billable calls', () => {
 describe('Property 20: successful classifications are cached with a timestamp', () => {
   it('writes the classification and current timestamp on success', async () => {
     const cache = new InMemoryCache();
-    const provider = new MockSerpProvider(true, (kw) => responseWithCompetitors(kw, ['a.com', 'b.com']));
+    const provider = new MockSerpProvider(true, (kw) => responseWithCompetitors(kw, ['a.com', 'b.com', 'c.com', 'd.com']));
 
     await enrichWithWhiteSpaceDetection(
       [makeSuggestion('s', 'electric vehicle battery')],
@@ -130,6 +130,6 @@ describe('Property 20: successful classifications are cached with a timestamp', 
     const stored = cache.store.get('electric vehicle battery');
     expect(stored).toBeDefined();
     expect(stored?.timestamp).toBe(NOW);
-    expect(stored?.classification.opportunityClass).toBe('YELLOW'); // 2 distinct competitor domains
+    expect(stored?.classification.opportunityClass).toBe('YELLOW'); // 4 distinct competitor domains → 3..5 band
   });
 });

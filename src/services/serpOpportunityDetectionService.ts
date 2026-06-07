@@ -42,7 +42,7 @@ export interface ResultClassification {
   domain: string;
   isCompetitorReport: boolean;
   matchedSignals: SerpSignalType[];
-  excludedReason?: 'blog' | 'no_indicator' | 'own_domain';
+  excludedReason?: 'blog' | 'no_indicator' | 'own_domain' | 'non_competitor';
 }
 
 export interface SignalExtraction {
@@ -72,11 +72,15 @@ export interface CachedClassification {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const SCORING_RUBRIC = {
-  // Competitor_Count → Opportunity_Class partition (R2.1–2.4).
+  // Competitor_Count → Opportunity_Class partition (R2.1–2.4). Calibrated to the
+  // real SERP distribution: syndicated-research SEO sites auto-publish a "Market
+  // Size" page for nearly every broad term, so the competitor-count floor is ~4–8.
+  // True 0–2 coverage is a genuine gap; only 10+ is hyper-commoditised. White-space
+  // flags the extremes (Fork B) rather than vetoing every competed market.
   thresholds: {
-    greenMax: 0,    // count === 0            → GREEN (gap)
-    yellowMax: 2,   // 1..2                   → YELLOW (partial)
-    crowdedMax: 6,  // 3..6                   → RED (crowded); >= 7 → RED (commoditised)
+    greenMax: 2,    // 0..2  → GREEN (genuine gap / low competition)
+    yellowMax: 5,   // 3..5  → YELLOW (competed but differentiable)
+    crowdedMax: 9,  // 6..9  → RED (crowded); >= 10 → RED (commoditised)
   },
   // White_Space_Score bands (R6.1–6.3): GREEN >= 75, YELLOW 40..74, RED < 40.
   scoreBands: {
@@ -97,6 +101,14 @@ export const SCORING_RUBRIC = {
   reportMarketplaces: ['researchandmarkets.com', 'reportlinker.com', 'marketresearch.com'],
   // Kaiso's own domains, always excluded from Competitor_Count (R4.5).
   ownDomains: ['kaiso'],
+  // Non-competitor domains excluded from the count: government, social, data
+  // portals, consultancies, cloud vendors, encyclopedias, and industry bodies.
+  // They surface for market queries but do not sell syndicated reports. Any
+  // ".gov" host is also excluded (see isNonCompetitor). Extend as noise appears.
+  nonCompetitorDomains: [
+    'linkedin.com', 'statista.com', 'mckinsey.com', 'iea.org', 'semi.org',
+    'aws.amazon.com', 'wikipedia.org',
+  ],
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,6 +227,14 @@ function isOwnDomain(domain: string, config: ScoringRubric): boolean {
   return config.ownDomains.some((d) => domain.includes(d));
 }
 
+/** Fork B — non-competitor domains (government, social, data portals,
+ * consultancies, cloud vendors, encyclopedias, industry bodies) excluded from
+ * the count even when they rank for a market query; any ".gov" host too. */
+function isNonCompetitor(domain: string, config: ScoringRubric): boolean {
+  if (/\.gov(\.|$)/.test(domain)) return true;
+  return config.nonCompetitorDomains.some((d) => domain === d || domain.endsWith('.' + d));
+}
+
 /** R3.5 — a report-marketplace aggregator (exact host or sub-host). */
 function isReportMarketplace(domain: string, config: ScoringRubric): boolean {
   return config.reportMarketplaces.some((m) => domain === m || domain.endsWith('.' + m));
@@ -240,6 +260,11 @@ export function classifyResult(
   // Own-domain exclusion (R4.5) — overrides everything.
   if (isOwnDomain(domain, config)) {
     return { domain, isCompetitorReport: false, matchedSignals, excludedReason: 'own_domain' };
+  }
+
+  // Non-competitor exclusion (Fork B) — govt/social/data/consulting/cloud/etc.
+  if (isNonCompetitor(domain, config)) {
+    return { domain, isCompetitorReport: false, matchedSignals, excludedReason: 'non_competitor' };
   }
 
   // Blog/news/article exclusion (R4.2) — overrides any report indicators.

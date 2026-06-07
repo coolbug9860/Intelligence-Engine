@@ -12,9 +12,9 @@ import { SCORING_RUBRIC, RUN_CONTROL } from './serpOpportunityDetectionService';
 
 describe('SCORING_RUBRIC configuration', () => {
   it('exposes the named Competitor_Count threshold partition', () => {
-    expect(SCORING_RUBRIC.thresholds.greenMax).toBe(0);
-    expect(SCORING_RUBRIC.thresholds.yellowMax).toBe(2);
-    expect(SCORING_RUBRIC.thresholds.crowdedMax).toBe(6);
+    expect(SCORING_RUBRIC.thresholds.greenMax).toBe(2);
+    expect(SCORING_RUBRIC.thresholds.yellowMax).toBe(5);
+    expect(SCORING_RUBRIC.thresholds.crowdedMax).toBe(9);
     // Partition is ordered and non-overlapping.
     expect(SCORING_RUBRIC.thresholds.greenMax).toBeLessThan(SCORING_RUBRIC.thresholds.yellowMax);
     expect(SCORING_RUBRIC.thresholds.yellowMax).toBeLessThan(SCORING_RUBRIC.thresholds.crowdedMax);

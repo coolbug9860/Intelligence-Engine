@@ -26,20 +26,21 @@ describe('Property 1: threshold partition determines class and score band', () =
   it('assigns the partitioned class and an in-band score for any count', () => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 50 }), (count) => {
+        const { greenMax, yellowMax, crowdedMax } = SCORING_RUBRIC.thresholds;
         const { opportunityClass, score, reason } = applyRubric(count, [], SCORING_RUBRIC);
 
-        if (count === 0) {
+        if (count <= greenMax) {
           expect(opportunityClass).toBe('GREEN');
           expect(reason).toBe('gap');
           expect(score).toBeGreaterThanOrEqual(75);
-        } else if (count <= 2) {
+        } else if (count <= yellowMax) {
           expect(opportunityClass).toBe('YELLOW');
           expect(reason).toBe('partial');
           expect(score).toBeGreaterThanOrEqual(40);
           expect(score).toBeLessThanOrEqual(74);
         } else {
           expect(opportunityClass).toBe('RED');
-          expect(reason).toBe(count <= 6 ? 'crowded' : 'commoditised');
+          expect(reason).toBe(count <= crowdedMax ? 'crowded' : 'commoditised');
           expect(score).toBeLessThan(40);
           expect(score).toBeGreaterThanOrEqual(0);
         }
