@@ -158,9 +158,9 @@ sub-tasks placed next to the implementation they validate.
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 7. Implement the I/O shell: provider and result cache
-  - [x] 7.1 Implement the `SerpProvider` interface and `GoogleCseProvider`
-    - Define `SerpProvider` (`isConfigured()`, `search(keyword)`), implement `GoogleCseProvider` reading `GOOGLE_CSE_KEY` + `GOOGLE_CSE_ID` (Google Custom Search JSON API — free 100/day, commercial-OK), normalize the vendor payload into the internal `SerpResponse` (organic only; free CSE exposes no ads/AI-overview), and add `SerpProviderError extends Error` carrying `{ code, keyword }`
-    - `isConfigured()` returns false when either credential is absent
+  - [x] 7.1 Implement the `SerpProvider` interface and `TavilyProvider`
+    - Define `SerpProvider` (`isConfigured()`, `search(keyword)`), implement `TavilyProvider` reading `TAVILY_API_KEY` (Tavily Search API — free 1,000 credits/month, no card, commercial-OK; chosen after Google deprecated CSE whole-web search), normalize the vendor payload into the internal `SerpResponse` (organic only; Tavily exposes no ads/AI-overview), and add `SerpProviderError extends Error` carrying `{ code, keyword }`
+    - `isConfigured()` returns false when the credential is absent
     - _Requirements: 1.2, 1.3, 7.2_
 
   - [x]* 7.2 Write unit test for provider invocation and payload normalization

@@ -422,7 +422,7 @@ export function toWhiteSpaceFields(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// I/O SHELL — SERP provider (Google Custom Search JSON API) and result cache.
+// I/O SHELL — SERP provider (Tavily Search API) and result cache.
 // Provider-agnostic interface; one concrete vendor implementation. Mock-tested.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -443,82 +443,74 @@ export class SerpProviderError extends Error {
   }
 }
 
-interface GoogleCseItem {
+interface TavilyResult {
   title?: string;
-  link?: string;
-  displayLink?: string;
-  snippet?: string;
-  pagemap?: Record<string, unknown>;
+  url?: string;
+  content?: string;
 }
-interface GoogleCsePayload {
-  items?: GoogleCseItem[];
+interface TavilyPayload {
+  results?: TavilyResult[];
 }
 
 /** Minimal fetch surface so the provider is unit-testable without the network. */
-type FetchLike = (url: string) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
+type HttpFetch = (
+  url: string,
+  init?: unknown,
+) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
 
-/** Best-effort schema.org Report/Product detection from the CSE pagemap (R3.4);
- * never the sole competitor signal. */
-function detectReportSchema(pagemap?: Record<string, unknown>): boolean {
-  if (!pagemap) return false;
-  const keys = Object.keys(pagemap).map((k) => k.toLowerCase());
-  return keys.includes('product') || keys.includes('report') || keys.includes('offer');
-}
-
-/** R1.3 — normalize a Google CSE payload into the internal SerpResponse. Free
- * CSE exposes only organic results (no ads / AI Overview), so those are empty. */
-export function normalizeGoogleCse(keyword: string, payload: GoogleCsePayload): SerpResponse {
-  const items = Array.isArray(payload?.items) ? payload.items : [];
-  const organic: SerpOrganicResult[] = items.map((it) => {
-    const link = it.link ?? '';
+/** R1.3 — normalize a Tavily Search payload into the internal SerpResponse.
+ * Tavily returns ranked organic web results (title/url/content); it exposes no
+ * ads or AI-Overview block, so those are empty (organic-only detection). */
+export function normalizeTavily(keyword: string, payload: TavilyPayload): SerpResponse {
+  const results = Array.isArray(payload?.results) ? payload.results : [];
+  const organic: SerpOrganicResult[] = results.map((r) => {
+    const link = r.url ?? '';
     return {
-      title: it.title ?? '',
+      title: r.title ?? '',
       link,
-      domain: extractDomain(link) || (it.displayLink ?? '').toLowerCase(),
-      snippet: it.snippet,
-      hasReportSchema: detectReportSchema(it.pagemap),
+      domain: extractDomain(link),
+      snippet: r.content,
     };
   });
   return { keyword, organic, ads: [], aiOverviewSources: [] };
 }
 
 /**
- * R1.2 / R1.3 / R7.2 — Google Custom Search JSON API provider. Reads
- * GOOGLE_CSE_KEY + GOOGLE_CSE_ID; free tier is 100 queries/day and commercial-
- * use OK. `isConfigured()` is false when either credential is absent.
+ * R1.2 / R1.3 / R7.2 — Tavily Search API provider. Reads TAVILY_API_KEY; the
+ * free tier is 1,000 credits/month (1 per search), commercial-use OK, no card.
+ * `isConfigured()` is false when the credential is absent.
  */
-export class GoogleCseProvider implements SerpProvider {
+export class TavilyProvider implements SerpProvider {
   constructor(
-    private readonly key: string = (process.env.GOOGLE_CSE_KEY ?? '').trim(),
-    private readonly cx: string = (process.env.GOOGLE_CSE_ID ?? '').trim(),
-    private readonly fetchFn: FetchLike = (url) => fetch(url),
+    private readonly key: string = (process.env.TAVILY_API_KEY ?? '').trim(),
+    private readonly fetchFn: HttpFetch = (url, init) => fetch(url, init as RequestInit),
   ) {}
 
   isConfigured(): boolean {
-    return this.key.length > 0 && this.cx.length > 0;
+    return this.key.length > 0;
   }
 
   async search(keyword: string): Promise<SerpResponse> {
     if (!this.isConfigured()) {
-      throw new SerpProviderError('Google CSE credentials missing', 'NO_CREDENTIAL', keyword);
+      throw new SerpProviderError('Tavily credential missing', 'NO_CREDENTIAL', keyword);
     }
-    const url =
-      `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(this.key)}` +
-      `&cx=${encodeURIComponent(this.cx)}&q=${encodeURIComponent(keyword)}&num=10`;
-
     let res: { ok: boolean; status: number; json: () => Promise<unknown> };
     try {
-      res = await this.fetchFn(url);
+      res = await this.fetchFn('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.key}` },
+        body: JSON.stringify({ query: keyword, search_depth: 'basic', max_results: 10 }),
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new SerpProviderError(`Google CSE request failed: ${msg}`, 'NETWORK', keyword);
+      throw new SerpProviderError(`Tavily request failed: ${msg}`, 'NETWORK', keyword);
     }
     if (!res.ok) {
-      const code = res.status === 429 ? 'RATE_LIMIT' : res.status === 403 ? 'FORBIDDEN' : `HTTP_${res.status}`;
-      throw new SerpProviderError(`Google CSE HTTP ${res.status}`, code, keyword);
+      const code = res.status === 429 ? 'RATE_LIMIT' : res.status === 401 || res.status === 403 ? 'FORBIDDEN' : `HTTP_${res.status}`;
+      throw new SerpProviderError(`Tavily HTTP ${res.status}`, code, keyword);
     }
-    const payload = (await res.json()) as GoogleCsePayload;
-    return normalizeGoogleCse(keyword, payload);
+    const payload = (await res.json()) as TavilyPayload;
+    return normalizeTavily(keyword, payload);
   }
 }
 
