@@ -666,7 +666,7 @@ app.get("/api/rss", async (_, res) => {
 
 app.post("/api/intelligence/run", async (req, res) => {
   try {
-    const { articles, watchlistTitles } = req.body;
+    const { articles, watchlistTitles, previousMemory } = req.body;
 
     // Fetch RSS feeds and EDGAR signals in parallel — saves ~3-5s per run
     const [{ articles: rssArticles }, edgarSignals] = await Promise.all([
@@ -686,8 +686,16 @@ app.post("/api/intelligence/run", async (req, res) => {
       `[Pipeline] RSS: ${pipelineArticles.length} articles | EDGAR: ${edgarSignals.length} signals`
     );
 
-    // Load persisted memory from disk instead of relying on browser state
-    const persistedMemory = loadMemoryFromDisk();
+    // Memory durability: /tmp is wiped on every Render redeploy and cold start,
+    // so it loses novelty-suppression history. The browser persists memoryState
+    // in localStorage (durable across restarts) and sends it as `previousMemory`.
+    // Prefer the browser copy when it is at least as rich as the /tmp copy; fall
+    // back to disk for a fresh browser on a still-warm instance.
+    const diskMemory = loadMemoryFromDisk();
+    const clientCycles = previousMemory?.cycles?.length ?? 0;
+    const diskCycles = diskMemory?.cycles?.length ?? 0;
+    const persistedMemory = clientCycles >= diskCycles ? (previousMemory ?? diskMemory) : diskMemory;
+    console.log(`[Memory] Using ${clientCycles >= diskCycles && previousMemory ? 'browser' : 'disk'} memory (browser: ${clientCycles} cycles, disk: ${diskCycles} cycles).`);
 
     const state = await runIntelligencePipeline(
       pipelineArticles,

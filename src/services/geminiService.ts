@@ -652,8 +652,17 @@ export async function analyzeNews(
   // Prevents prompt overflow when EDGAR returns large result sets
   const MAX_EDGAR_PER_VERTICAL = 3;
   const MAX_EDGAR_TOTAL = 42;
+  // Shuffle before the per-vertical cap so the same strong filings don't dominate
+  // every session within the 24h EDGAR cache window. The fetch order is not a
+  // quality ranking, so randomizing the 3-per-vertical pick adds within-day
+  // variety (independent of memory suppression) with no loss of relevance.
+  const shuffledEdgar = [...rawEdgar];
+  for (let i = shuffledEdgar.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledEdgar[i], shuffledEdgar[j]] = [shuffledEdgar[j], shuffledEdgar[i]];
+  }
   const edgarByVertical: Record<string, typeof rawEdgar> = {};
-  for (const signal of rawEdgar) {
+  for (const signal of shuffledEdgar) {
     if (!edgarByVertical[signal.vertical]) edgarByVertical[signal.vertical] = [];
     if (edgarByVertical[signal.vertical].length < MAX_EDGAR_PER_VERTICAL) {
       edgarByVertical[signal.vertical].push(signal);
