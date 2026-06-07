@@ -162,10 +162,11 @@ function computeVerdict(
   const scoreOk  = oppScore >= PUBLISH_SCORE_THRESHOLD;
 
   if (wsGreen && scoreOk) {
+    const competitorCount = s.whiteSpaceCompetitors?.length ?? 0;
     const wsPhrase =
       ws === 'CONFIRMED_GAP'
         ? 'no major publishers have this title'
-        : `only ${s.whiteSpaceCompetitors?.[0] ?? 'one publisher'} covers this`;
+        : `only ${competitorCount} competing publisher${competitorCount === 1 ? '' : 's'} cover this niche`;
     const trendPhrase =
       trend === 'RISING'
         ? `search interest is rising (${s.trendScore ?? '—'})`
