@@ -43,10 +43,6 @@ Kaiso-Intelligence-OS/
     │   ├── ExecutiveIntelligenceView.tsx   "EXECUTIVE" grid mode
     │   ├── StrategicTelemetryFeed.tsx      loading/telemetry animation
     │   ├── IntelligenceGraphAssembly.tsx   analysis loading animation
-    │   ├── CausalPathTrace.tsx             detail: causal chain viz
-    │   ├── MarketStressTest.tsx            detail: stress scenarios
-    │   ├── EvidenceDossier.tsx             detail: evidence sources
-    │   ├── IntelligenceEvolution.tsx       detail: 30d trajectory
     │   ├── IntelligenceProfile.tsx         detail: confidence model
     │   ├── ExportDossier.tsx               detail: image/canvas export
     │   ├── LoginScreen.tsx                 auth gate

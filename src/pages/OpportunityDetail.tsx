@@ -13,17 +13,10 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  ChevronDown,
-  ChevronUp,
   ShieldCheck,
   AlertTriangle,
   RefreshCw,
-  Layers,
 } from 'lucide-react';
-import { CausalPathTrace } from '../components/CausalPathTrace';
-import { MarketStressTest } from '../components/MarketStressTest';
-import { EvidenceDossier } from '../components/EvidenceDossier';
-import { IntelligenceEvolution } from '../components/IntelligenceEvolution';
 import { ExportDossier } from '../components/ExportDossier';
 import { ReportSuggestion } from '../types';
 import { generateFullBrief } from '../services/geminiService';
@@ -75,7 +68,6 @@ export default function OpportunityDetail() {
   const [exportingDocx, setExportingDocx] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
 
   useEffect(() => {
     try {
@@ -508,41 +500,6 @@ export default function OpportunityDetail() {
               <div className="whitespace-pre-wrap leading-relaxed">{brief}</div>
             </div>
           )}
-
-          {/* ── DEEP ANALYSIS TOGGLE ── */}
-          <div>
-            <button
-              onClick={() => setShowDeepAnalysis(v => !v)}
-              className="w-full flex items-center justify-between px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-[#1A3668] hover:border-[#1A3668]/30 transition-all shadow-sm group"
-            >
-              <span className="flex items-center gap-2">
-                <Layers size={13} className="text-slate-400 group-hover:text-[#1A3668]" />
-                Deep Analysis — Causal Trace, Stress Simulation, Evidence Dossier
-              </span>
-              {showDeepAnalysis ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-            </button>
-
-            {showDeepAnalysis && (
-              <div className="mt-4 space-y-6">
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                  <CausalPathTrace
-                    path={s.causalPath}
-                    fallbackData={{ trigger: s.trigger, rationale: s.rationale, b2bCommercialRationale: s.b2bCommercialRationale }}
-                  />
-                </div>
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                  <MarketStressTest tests={s.stressTests} />
-                </div>
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                  <EvidenceDossier
-                    sources={s.evidenceSources}
-                    primarySource={{ source: s.sourceName, url: s.sourceArticleUrl, title: s.sourceArticleTitle }}
-                  />
-                </div>
-
-              </div>
-            )}
-          </div>
 
         </div>
 
