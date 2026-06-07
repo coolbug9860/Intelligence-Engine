@@ -2,16 +2,15 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ReportSuggestion, RSSArticle, EDGARSignal } from "../types";
 
 /** Model id passed to `GoogleGenAI.models.generateContent` (server + browser API paths in this file). */
-const GEMINI_ANALYSIS_MODEL = "gemini-2.5-flash";   // Best price-performance for high-volume structured output with reasoning
+const GEMINI_ANALYSIS_MODEL = "gemini-2.5-flash-lite";  // Primary: reliable free-tier capacity; empirically produces the full structured portfolio every run
 const GEMINI_BRIEF_MODEL = "gemini-2.5-pro";         // Most advanced reasoning for complex brief generation — worth the cost for a one-off $3-5k report justification
 
-// Fallback chain for the analysis call. A 503 UNAVAILABLE is a per-model
-// capacity problem (the model's shared serving pool is saturated), so retrying
-// the same model — even on a different key — keeps hitting the same wall. When
-// the primary is sustained-overloaded we fail over to a model with a SEPARATE
-// serving pool (flash-lite) using an identical request config. Quality degrades
-// slightly on the fallback, which beats returning zero opportunities.
-const ANALYSIS_MODEL_CHAIN = [GEMINI_ANALYSIS_MODEL, "gemini-2.5-flash-lite"];
+// Analysis model chain. Live logs showed gemini-2.5-flash is consistently
+// 503-overloaded at run time (≈30s wasted per attempt before failover), while
+// gemini-2.5-flash-lite has headroom and returns the full schema-valid portfolio
+// every run. So flash-lite is primary; flash is kept as a fallback for the rare
+// case flash-lite is itself unavailable. Identical request config either way.
+const ANALYSIS_MODEL_CHAIN = [GEMINI_ANALYSIS_MODEL, "gemini-2.5-flash"];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MULTI-KEY ROTATION MANAGER
