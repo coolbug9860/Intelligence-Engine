@@ -112,49 +112,49 @@ sub-tasks placed next to the implementation they validate.
     - **Property 10: Competitor_Count is the distinct-domain count**
     - **Validates: Requirements 2.5, 4.3, 10.8**
 
-- [ ] 5. Implement the Scoring_Rubric and output-field mapping
-  - [ ] 5.1 Implement `applyRubric`
+- [x] 5. Implement the Scoring_Rubric and output-field mapping
+  - [x] 5.1 Implement `applyRubric`
     - Map Competitor_Count to Opportunity_Class via the threshold partition (0→GREEN, 1–2→YELLOW, 3–6→RED "crowded", ≥7→RED "commoditised") and compute the deterministic in-band White_Space_Score (GREEN ≥75, YELLOW 40–74, RED <40)
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 6.1, 6.2, 6.3, 6.4_
 
-  - [ ]* 5.2 Write property test for the threshold partition and score bands
+  - [x]* 5.2 Write property test for the threshold partition and score bands
     - **Property 1: Threshold partition determines class and score band**
     - **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 6.1, 6.2, 6.3**
 
-  - [ ]* 5.3 Write property test for deterministic scoring
+  - [x]* 5.3 Write property test for deterministic scoring
     - **Property 2: Scoring is deterministic**
     - **Validates: Requirements 6.4**
 
-  - [ ] 5.4 Implement `buildGapReason` explanation generator
+  - [x] 5.4 Implement `buildGapReason` explanation generator
     - Produce a one-sentence string containing the numeric Competitor_Count and naming each contributing SERP_Signal type
     - _Requirements: 6.5_
 
-  - [ ]* 5.5 Write property test for the explanation string
+  - [x]* 5.5 Write property test for the explanation string
     - **Property 12: Explanation names the count and contributing signals**
     - **Validates: Requirements 6.5**
 
-  - [ ] 5.6 Implement `toWhiteSpaceFields`
+  - [x] 5.6 Implement `toWhiteSpaceFields`
     - Map Opportunity_Class to exactly one `whiteSpaceStatus` (GREEN→CONFIRMED_GAP, YELLOW→PARTIAL_COVERAGE, RED→COMMODITISED, missing/unrecognized→UNKNOWN) and populate `whiteSpaceScore`, `whiteSpaceLabel`, `whiteSpaceCompetitors`, `whiteSpaceGapReason`, and `whiteSpaceSignals`
     - Populate every contract field it can derive on a best-effort basis and complete the classification even when one or more fields cannot be derived (no rejection/abort)
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 3.8_
 
-  - [ ]* 5.7 Write property test for class-to-status mapping
+  - [x]* 5.7 Write property test for class-to-status mapping
     - **Property 13: Class-to-status mapping is total and single-valued**
     - **Validates: Requirements 10.1, 10.2, 10.3, 10.4, 10.5, 10.6**
 
-  - [ ]* 5.8 Write property test for the full output contract
+  - [x]* 5.8 Write property test for the full output contract
     - **Property 14: Classified suggestions carry the full output contract via best-effort/partial field population**
     - **Validates: Requirements 10.7**
 
-  - [ ]* 5.9 Write property test for recorded signal types
+  - [x]* 5.9 Write property test for recorded signal types
     - **Property 11: Contributing signal types are recorded**
     - **Validates: Requirements 3.8**
 
-  - [ ]* 5.10 Write edge-case unit test for unrecognized class
+  - [x]* 5.10 Write edge-case unit test for unrecognized class
     - Confirm a missing/unrecognized Opportunity_Class maps to `UNKNOWN`
     - _Requirements: 10.6_
 
-- [ ] 6. Checkpoint - Ensure all tests pass
+- [x] 6. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 7. Implement the I/O shell: provider and result cache

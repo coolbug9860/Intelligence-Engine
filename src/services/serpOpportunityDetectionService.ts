@@ -324,3 +324,97 @@ export function countCompetitors(
   const list = Array.from(domains);
   return { count: list.length, domains: list };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PURE CORE — Scoring_Rubric application and output-field mapping.
+// Deterministic, no I/O. Property-tested (Properties 1, 2, 11, 12, 13, 14).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The downstream white-space contract fields produced for a ReportSuggestion. */
+export interface WhiteSpaceFields {
+  whiteSpaceStatus: 'CONFIRMED_GAP' | 'PARTIAL_COVERAGE' | 'COMMODITISED' | 'UNKNOWN';
+  whiteSpaceScore?: number;
+  whiteSpaceLabel?: string;
+  whiteSpaceCompetitors?: string[];
+  whiteSpaceGapReason?: string;
+  whiteSpaceSignals?: SerpSignalType[];
+  opportunityClass?: OpportunityClass;
+}
+
+/**
+ * R2.1–2.4 / R6.1–6.4 / Properties 1 & 2 — map Competitor_Count to the
+ * Opportunity_Class partition and a deterministic in-band White_Space_Score:
+ * 0 → GREEN (85), 1–2 → YELLOW (55), 3–6 → RED "crowded" (25), ≥7 → RED
+ * "commoditised" (decays below 25). Strong report signals nudge confidence in a
+ * RED call downward but never cross a band boundary.
+ */
+export function applyRubric(
+  competitorCount: number,
+  signals: SerpSignalType[],
+  config: ScoringRubric,
+): Classification {
+  const count = Math.max(0, Math.floor(competitorCount));
+  const { greenMax, yellowMax, crowdedMax } = config.thresholds;
+  const { greenBase, yellowBase, redBase } = config.scoreBands;
+
+  if (count <= greenMax) return { opportunityClass: 'GREEN', score: greenBase, reason: 'gap' };
+  if (count <= yellowMax) return { opportunityClass: 'YELLOW', score: yellowBase, reason: 'partial' };
+
+  const reason: Classification['reason'] = count <= crowdedMax ? 'crowded' : 'commoditised';
+  const decay = Math.max(0, count - crowdedMax) * 3;
+  const signalPenalty = signals.some((s) => s === 'SCHEMA_MARKUP' || s === 'REPORT_MARKETPLACE') ? 2 : 0;
+  const score = Math.max(0, Math.min(redBase, redBase - decay - signalPenalty));
+  return { opportunityClass: 'RED', score, reason };
+}
+
+/**
+ * R6.5 / Property 12 — one-sentence explanation containing the numeric
+ * Competitor_Count and naming each contributing SERP_Signal type.
+ */
+export function buildGapReason(count: number, signals: SerpSignalType[]): string {
+  const noun = count === 1 ? 'competing report domain' : 'competing report domains';
+  if (signals.length === 0) {
+    return `Found ${count} ${noun} across the scanned SERP signals.`;
+  }
+  return `Found ${count} ${noun} across these SERP signals: ${signals.join(', ')}.`;
+}
+
+/** Opportunity_Class → whiteSpaceStatus (R10.2–10.5) and display label. */
+const STATUS_LABEL: Record<WhiteSpaceFields['whiteSpaceStatus'], string> = {
+  CONFIRMED_GAP: '🟢 Confirmed Gap',
+  PARTIAL_COVERAGE: '🟡 Partial Coverage',
+  COMMODITISED: '🔴 Commoditised',
+  UNKNOWN: '⚪ Unknown',
+};
+
+/**
+ * R10.1–10.7 / R3.8 / Properties 11, 13, 14 — map an Opportunity_Class to the
+ * downstream contract fields. GREEN→CONFIRMED_GAP, YELLOW→PARTIAL_COVERAGE,
+ * RED→COMMODITISED; a missing or unrecognized class maps to UNKNOWN. Populates
+ * every field it can derive on a best-effort basis (never aborts on a missing
+ * one). UNKNOWN carries only the status, leaving legacy fields untouched.
+ */
+export function toWhiteSpaceFields(
+  classification: Classification | undefined,
+  domains: string[],
+  signals: SerpSignalType[],
+): WhiteSpaceFields {
+  const cls = classification?.opportunityClass;
+  const status: WhiteSpaceFields['whiteSpaceStatus'] =
+    cls === 'GREEN' ? 'CONFIRMED_GAP'
+    : cls === 'YELLOW' ? 'PARTIAL_COVERAGE'
+    : cls === 'RED' ? 'COMMODITISED'
+    : 'UNKNOWN';
+
+  if (status === 'UNKNOWN') return { whiteSpaceStatus: 'UNKNOWN' };
+
+  return {
+    whiteSpaceStatus: status,
+    whiteSpaceScore: classification?.score,
+    whiteSpaceLabel: STATUS_LABEL[status],
+    whiteSpaceCompetitors: domains,
+    whiteSpaceGapReason: buildGapReason(domains.length, signals),
+    whiteSpaceSignals: signals,
+    opportunityClass: cls,
+  };
+}
