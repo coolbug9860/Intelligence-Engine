@@ -175,6 +175,18 @@ function sleep(ms: number): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SINGLE-KEYWORD EXPORT (used by the ground-truth ledger's trend re-checks)
+//
+// Thin wrapper over the internal queryTrends() so outcomeLedger can re-poll a
+// single marketKeyword at the 30/60/90-day checkpoints without duplicating the
+// Google Trends query/parse logic. Returns null on any failure (non-fatal).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function fetchKeywordTrend(keyword: string): Promise<TrendResult | null> {
+  return queryTrends(keyword);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN EXPORT
 // ─────────────────────────────────────────────────────────────────────────────
 

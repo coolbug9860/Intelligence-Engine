@@ -17,6 +17,12 @@ import { generateBriefDocxBuffer } from "./src/services/briefExportServer";
 import { enrichWithTrends } from "./src/services/trendsService";
 import { enrichWithWhiteSpaceDetection } from "./src/services/serpOpportunityDetectionService";
 import { classifyPortfolio } from "./src/services/actionClassificationEngine";
+import {
+  readLedger,
+  upsertVerdict,
+  runDueTrendChecks,
+  computeVerticalCalibration,
+} from "./src/services/outcomeLedger";
 
 dotenv.config();
 
@@ -717,11 +723,23 @@ app.post("/api/intelligence/run", async (req, res) => {
     const persistedMemory = clientCycles >= diskCycles ? (previousMemory ?? diskMemory) : diskMemory;
     console.log(`[Memory] Using ${clientCycles >= diskCycles && previousMemory ? 'browser' : 'disk'} memory (browser: ${clientCycles} cycles, disk: ${diskCycles} cycles).`);
 
+    // Ground-truth calibration: derive bounded per-vertical multipliers from
+    // real recorded outcomes (sell-through rate). Non-fatal — an empty map means
+    // neutral 1.0 scoring everywhere until enough verdicts accumulate.
+    const calibration = await computeVerticalCalibration().catch((err) => {
+      console.warn('[Calibration] Failed to compute, using neutral scoring:', err);
+      return {};
+    });
+    if (Object.keys(calibration).length) {
+      console.log('[Calibration] Applying vertical multipliers:', calibration);
+    }
+
     const state = await runIntelligencePipeline(
       pipelineArticles,
       watchlistTitles || [],
       persistedMemory,
-      combinedSignals
+      combinedSignals,
+      calibration
     );
 
     // Save updated memory back to disk after every successful run
@@ -767,6 +785,15 @@ app.post("/api/intelligence/run", async (req, res) => {
       }
     }
 
+    // Ground-truth trend loop: fire the 30/60/90-day re-checks for any due
+    // ledger records. Fire-and-forget so the slow Google Trends polling never
+    // delays the pipeline response; bounded internally to a small batch per run.
+    void runDueTrendChecks()
+      .then(({ checked }) => {
+        if (checked) console.log(`[Ledger] Trend checkpoint sweep recorded ${checked} check(s).`);
+      })
+      .catch((err) => console.warn('[Ledger] Trend sweep failed (non-fatal):', err));
+
     res.json(state);
   } catch (error) {
     console.error(error);
@@ -774,6 +801,72 @@ app.post("/api/intelligence/run", async (req, res) => {
     res.status(500).json({
       error: "Intelligence pipeline failed. Please try again.",
     });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// GROUND-TRUTH OUTCOME LEDGER — commercial verdict capture + read
+// Auth + general rate limit already applied by the /api middleware above.
+// ════════════════════════════════════════════════════════════════════════════════
+app.post("/api/outcomes/verdict", async (req, res) => {
+  try {
+    const {
+      opportunityId,
+      verdict,
+      vertical,
+      marketKeyword,
+      reportTitle,
+      strategicPillar,
+      opportunityScore,
+      trendScore,
+      trendDirection,
+      verdictNote,
+    } = req.body || {};
+
+    const VALID_VERDICTS = ["COMMISSIONED", "SOLD", "PASSED", "PENDING"];
+    if (
+      !opportunityId ||
+      !VALID_VERDICTS.includes(verdict) ||
+      !vertical ||
+      !marketKeyword ||
+      !reportTitle
+    ) {
+      return res.status(400).json({
+        error:
+          "opportunityId, a valid verdict (COMMISSIONED|SOLD|PASSED|PENDING), vertical, marketKeyword, and reportTitle are required.",
+      });
+    }
+
+    const records = await upsertVerdict({
+      opportunityId,
+      verdict,
+      vertical,
+      marketKeyword,
+      reportTitle,
+      strategicPillar,
+      opportunityScoreAtSurface:
+        typeof opportunityScore === "number" ? opportunityScore : undefined,
+      trendBaseline: typeof trendScore === "number" ? trendScore : undefined,
+      trendDirectionPredicted: trendDirection,
+      verdictNote,
+    });
+
+    const record = records.find((r) => r.opportunityId === opportunityId);
+    console.log(`[Outcomes] Recorded ${verdict} for ${opportunityId} (${vertical}).`);
+    return res.json({ success: true, record });
+  } catch (err) {
+    console.error("[Outcomes] Verdict capture failed:", err);
+    return res.status(500).json({ error: "Failed to record verdict." });
+  }
+});
+
+app.get("/api/outcomes", async (_req, res) => {
+  try {
+    const records = await readLedger();
+    return res.json({ success: true, count: records.length, records });
+  } catch (err) {
+    console.error("[Outcomes] Ledger read failed:", err);
+    return res.status(500).json({ error: "Failed to read outcome ledger." });
   }
 });
 

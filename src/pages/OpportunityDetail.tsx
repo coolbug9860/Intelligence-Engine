@@ -68,6 +68,8 @@ export default function OpportunityDetail() {
   const [exportingDocx, setExportingDocx] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [verdict, setVerdict] = useState<'COMMISSIONED' | 'SOLD' | 'PASSED' | null>(null);
+  const [savingVerdict, setSavingVerdict] = useState(false);
 
   useEffect(() => {
     try {
@@ -184,6 +186,42 @@ export default function OpportunityDetail() {
     } catch (err) {
       alert(`Snapshot failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally { setExporting(false); }
+  };
+
+  // ── Ground-truth feedback loop: record the commercial outcome ──────────────
+  const recordVerdict = async (value: 'COMMISSIONED' | 'SOLD' | 'PASSED') => {
+    if (!s || savingVerdict) return;
+    setSavingVerdict(true);
+    try {
+      const token = localStorage.getItem('kaiso_auth_token') ?? '';
+      const response = await fetch('/api/outcomes/verdict', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          opportunityId: s.id,
+          verdict: value,
+          vertical: s.vertical,
+          marketKeyword: s.marketKeyword,
+          reportTitle: s.reportTitle,
+          strategicPillar: s.strategicPillar,
+          opportunityScore: (s as any).opportunityScore,
+          trendScore: s.trendScore,
+          trendDirection: s.trendDirection,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error ?? `Server error ${response.status}`);
+      }
+      setVerdict(value);
+    } catch (err) {
+      alert(`Failed to record verdict: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setSavingVerdict(false);
+    }
   };
 
   // ── loading / error states ─────────────────────────────────────────────────
@@ -311,6 +349,38 @@ export default function OpportunityDetail() {
                     )}
                   </div>
                 )}
+
+                {/* ── Ground-Truth Feedback: record the human commercial outcome ── */}
+                <div className="mt-4 pt-4 border-t border-slate-200/70">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    Record Commercial Outcome
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Record commercial outcome">
+                    {([
+                      { value: 'COMMISSIONED', label: 'Commissioned', active: 'bg-[#1A3668] text-white border-[#1A3668]', idle: 'bg-white text-[#1A3668] border-[#1A3668]/30 hover:border-[#1A3668]' },
+                      { value: 'SOLD',         label: 'Sold',         active: 'bg-emerald-600 text-white border-emerald-600', idle: 'bg-white text-emerald-700 border-emerald-300 hover:border-emerald-600' },
+                      { value: 'PASSED',       label: 'Passed',       active: 'bg-slate-500 text-white border-slate-500', idle: 'bg-white text-slate-500 border-slate-300 hover:border-slate-500' },
+                    ] as const).map(({ value, label, active, idle }) => {
+                      const isActive = verdict === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => recordVerdict(value)}
+                          disabled={savingVerdict}
+                          aria-pressed={isActive}
+                          className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${isActive ? active : idle}`}
+                        >
+                          {savingVerdict && isActive && <Loader2 size={11} className="animate-spin" />}
+                          {label}
+                        </button>
+                      );
+                    })}
+                    {verdict && (
+                      <span className="text-[10px] font-bold text-emerald-600 ml-1">✓ Recorded</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}

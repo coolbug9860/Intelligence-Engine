@@ -1,4 +1,5 @@
 import { ReportSuggestion } from "../types";
+import type { VerticalCalibration } from "./outcomeLedger";
 
 /**
  * Deterministic scoring engine for Kaiso Intelligence Hub.
@@ -29,7 +30,7 @@ import { ReportSuggestion } from "../types";
  * Net effect: among credible ideas, the most sellable rank highest; ideas that are
  * commercially strong but poorly evidenced get dampened into MONITOR/PASS territory.
  */
-export function calculateOpportunityScore(suggestion: ReportSuggestion): ReportSuggestion {
+export function calculateOpportunityScore(suggestion: ReportSuggestion, calibration?: VerticalCalibration): ReportSuggestion {
 
   // ────────────────────────────────────────────────────────────────────────────
   // 1. COMMERCIAL CORE (0–100) — the primary ranking driver.
@@ -94,11 +95,18 @@ export function calculateOpportunityScore(suggestion: ReportSuggestion): ReportS
   riskMultipliers *= groundingIntegrity;
 
   // ────────────────────────────────────────────────────────────────────────────
-  // FINAL — commercial driver, gated by evidence, dampened by risk.
-  // Whitespace is intentionally NOT applied here (it is attached post-pipeline and
-  // incorporated downstream in actionClassificationEngine.computeActionScore).
+  // FINAL — commercial driver, gated by evidence, dampened by risk, then nudged
+  // by REAL outcomes. The calibration multiplier (0.90–1.10) comes from the
+  // ground-truth ledger's per-vertical sell-through rate; a missing key means a
+  // vertical has not yet cleared the ≥3-outcome sample gate, so it stays neutral
+  // at 1.0. Whitespace is intentionally NOT applied here (it is attached
+  // post-pipeline and incorporated downstream in actionClassificationEngine).
   // ────────────────────────────────────────────────────────────────────────────
-  const adjustedScore = Math.round(commercialCore * evidenceGate * riskMultipliers);
+  const calibrationMultiplier = calibration?.[String(suggestion.vertical)] ?? 1.0;
+
+  const adjustedScore = Math.round(
+    commercialCore * evidenceGate * riskMultipliers * calibrationMultiplier
+  );
 
   return {
     ...suggestion,

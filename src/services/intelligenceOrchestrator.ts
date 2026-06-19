@@ -53,6 +53,7 @@
  */
 
 import { RSSArticle, ReportSuggestion, EDGARSignal } from '../types';
+import type { VerticalCalibration } from './outcomeLedger';
 
 import { analyzeNews } from './geminiService';
 
@@ -178,7 +179,8 @@ export async function runIntelligencePipeline(
   articles: RSSArticle[],
   watchlistTitles: string[] = [],
   previousMemory?: IntelligenceMemory,
-  edgarSignals: EDGARSignal[] = []
+  edgarSignals: EDGARSignal[] = [],
+  calibration: VerticalCalibration = {}
 ): Promise<IntelligenceState> {
 
   // --- Browser execution: Fetch from Server API ---
@@ -245,7 +247,7 @@ export async function runIntelligencePipeline(
 
     processed = normalizeSuggestion(processed);
 
-    processed = calculateOpportunityScore(processed);
+    processed = calculateOpportunityScore(processed, calibration);
 
     processed = applyFreshnessScoring(processed);
 
