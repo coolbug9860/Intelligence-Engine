@@ -1,9 +1,9 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { ReportSuggestion, RSSArticle, EDGARSignal } from "../types";
 
 /** Model id passed to `GoogleGenAI.models.generateContent` (server + browser API paths in this file). */
 const GEMINI_ANALYSIS_MODEL = "gemini-2.5-flash-lite";  // Primary: reliable free-tier capacity; empirically produces the full structured portfolio every run
-const GEMINI_BRIEF_MODEL = "gemini-2.5-pro";         // Most advanced reasoning for complex brief generation — worth the cost for a one-off $3-5k report justification
+const GEMINI_BRIEF_MODEL = "gemini-3.5-flash";       // Near-Pro reasoning at Flash cost + free-tier quota; high thinking level set in generateFullBrief config
 
 // Analysis model chain. Live logs showed gemini-2.5-flash is consistently
 // 503-overloaded at run time (≈30s wasted per attempt before failover), while
@@ -1366,7 +1366,9 @@ Follow the verdict with exactly 2 sentences: the primary reason for the verdict,
         config: {
           temperature: 0.7,
           maxOutputTokens: 40000,
-          thinkingConfig: { thinkingBudget: 8000 },
+          // Gemini 3.x replaced the numeric thinkingBudget with thinkingLevel.
+          // HIGH = deepest reasoning, appropriate for a one-off $3-5k brief.
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
         },
       });
     });

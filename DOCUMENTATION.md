@@ -79,6 +79,10 @@ A trajectory map showing the **Consensus Velocity**. Surging sparklines indicate
 ---
 
 ## 6. Technical Integrity Notice
-KAISO Intelligence is derived using the **Gemini 1.5 Pro** model with custom strategic temperature settings. All calculations (Scores, Resilience %s, Trajectories) are deterministic based on the current active signal batch.
+KAISO runs a two-model pipeline on the `@google/genai` SDK:
+- **Signal analysis** uses **Gemini 2.5 Flash Lite** — reliable free-tier capacity that returns the full structured portfolio every run.
+- **Brief generation** uses **Gemini 3.5 Flash** at the **HIGH** thinking level — near-Pro reasoning at Flash-tier cost and free-tier quota, used for the one-off report commission document.
+
+The AI synthesis stage is generative and therefore not bit-for-bit reproducible between runs. Everything *after* synthesis — scoring, resilience, freshness, deduplication, diversity, forecasting, and trajectory math — is deterministic for a given signal batch.
 
 *Version: 5.0.0-PRO | Intelligence Governance: ACTIVE*
