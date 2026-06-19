@@ -242,11 +242,11 @@ class GeminiKeyManager {
   }
 }
 
-const keyManager = new GeminiKeyManager();
+export const keyManager = new GeminiKeyManager();
 
 const AI_TIMEOUT_MS = 90000;
 
-async function withTimeout<T>(
+export async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number = AI_TIMEOUT_MS
 ): Promise<T> {
@@ -434,7 +434,7 @@ function replaceUnescapedNewlinesInsideStrings(json: string): string {
  * 2) Extract first JSON array substring (balanced `[`...`]`; fallback greedy `/\[[\s\S]*\]/`)
  * 3) Repair trailing commas and unescaped newlines inside strings, then JSON.parse
  */
-function safeJsonParse(text: string) {
+export function safeJsonParse(text: string) {
   let cleanText = text.trim();
 
   if (cleanText.startsWith("```")) {

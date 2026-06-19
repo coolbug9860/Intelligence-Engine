@@ -315,7 +315,7 @@ export async function runIntelligencePipeline(
   pipelineStages.push('Reasoning Engine');
 
   const reasoningResult =
-    runReasoningEngine(curatedPortfolio);
+    await runReasoningEngine(curatedPortfolio);
 
   const reasoningClusters = reasoningResult.clusters;
 

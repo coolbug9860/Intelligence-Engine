@@ -12,6 +12,7 @@ import {
   generateFullBrief,
 } from "./src/services/geminiService";
 import { fetchEdgarSignals } from "./src/services/edgarService";
+import { fetchSamGovSignals, SamSignal } from "./src/services/samGovService";
 import { generateBriefDocxBuffer } from "./src/services/briefExportServer";
 import { enrichWithTrends } from "./src/services/trendsService";
 import { enrichWithWhiteSpaceDetection } from "./src/services/serpOpportunityDetectionService";
@@ -668,22 +669,41 @@ app.post("/api/intelligence/run", async (req, res) => {
   try {
     const { articles, watchlistTitles, previousMemory } = req.body;
 
-    // Fetch RSS feeds and EDGAR signals in parallel — saves ~3-5s per run
-    const [{ articles: rssArticles }, edgarSignals] = await Promise.all([
+    // Fetch RSS feeds, EDGAR signals, and SAM.gov signals in parallel — saves ~3-5s per run
+    const [{ articles: rssArticles }, edgarSignals, samGovSignals] = await Promise.all([
       ingestStableRssFeeds(),
       fetchEdgarSignals().catch((err) => {
         // EDGAR failure is non-fatal — pipeline continues with RSS only
         console.warn("[EDGAR] Fetch failed, continuing without EDGAR signals:", err);
         return [] as EDGARSignal[];
       }),
+      fetchSamGovSignals([]).catch((err) => {
+        // SAM.gov failure is non-fatal — pipeline continues without contract signals
+        console.warn("[SAM.gov] Fetch failed, continuing without SAM.gov signals:", err);
+        return [] as SamSignal[];
+      }),
     ]);
+
+    // Adapt SAM.gov contract opportunities into the EDGAR-shaped signal stream
+    // that Stage 1 (analyzeNews) already consumes — no pipeline/type changes.
+    const adaptedSamSignals: EDGARSignal[] = samGovSignals.map((s) => ({
+      title: s.title,
+      filingType: s.noticeType,
+      companyName: s.agency,
+      filingDate: s.postedDate,
+      excerpt: s.excerpt,
+      url: s.url,
+      vertical: s.vertical,
+      matchedKeyword: s.matchedKeyword,
+    }));
+    const combinedSignals: EDGARSignal[] = [...edgarSignals, ...adaptedSamSignals];
 
     const bodyArticles = Array.isArray(articles) ? articles : [];
     const pipelineArticles =
       rssArticles.length > 0 ? rssArticles : bodyArticles;
 
     console.log(
-      `[Pipeline] RSS: ${pipelineArticles.length} articles | EDGAR: ${edgarSignals.length} signals`
+      `[Pipeline] RSS: ${pipelineArticles.length} articles | EDGAR: ${edgarSignals.length} signals | SAM.gov: ${samGovSignals.length} signals`
     );
 
     // Memory durability: /tmp is wiped on every Render redeploy and cold start,
@@ -701,7 +721,7 @@ app.post("/api/intelligence/run", async (req, res) => {
       pipelineArticles,
       watchlistTitles || [],
       persistedMemory,
-      edgarSignals
+      combinedSignals
     );
 
     // Save updated memory back to disk after every successful run
