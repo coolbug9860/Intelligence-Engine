@@ -62,6 +62,7 @@ import { validateSuggestion } from './validationEngine';
 import { normalizeSuggestion } from './taxonomyEngine';
 import { calculateOpportunityScore } from './scoringEngine';
 import { applyFreshnessScoring } from './freshnessEngine';
+import { applyTitleCoherence } from './titleCoherenceEngine';
 import { runTemporalIntelligence } from './temporalIntelligenceEngine';
 
 import {
@@ -250,6 +251,12 @@ export async function runIntelligencePipeline(
     processed = calculateOpportunityScore(processed, calibration);
 
     processed = applyFreshnessScoring(processed);
+
+    // Deterministic guard: enforce geography-once on the title/keyword and cap
+    // event-subject (non-market) titles into PASS range. Runs last so the final
+    // (freshness-decayed) opportunityScore is what gets capped, and the cleaned
+    // marketKeyword propagates to the Phase-2 whitespace/SERP check.
+    processed = applyTitleCoherence(processed);
 
     return processed;
   });
