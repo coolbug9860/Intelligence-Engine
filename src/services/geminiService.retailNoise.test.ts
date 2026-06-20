@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { isRetailNoise } from './geminiService';
+import { isRetailNoise } from './articlePreparation';
 
 describe('isRetailNoise — drops consumer/personal-finance noise', () => {
   it.each([
