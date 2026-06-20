@@ -80,10 +80,10 @@ describe('extractSolicitationIds — SAM lookup trigger (Req 8.4)', () => {
   });
 });
 
-describe('buildFrDateRange — rolling 24h UTC lookback (Req 9.1)', () => {
-  it('should span the prior 24h as YYYY-MM-DD in UTC', () => {
+describe('buildFrDateRange — rolling lookback in UTC (Req 9.1)', () => {
+  it('should span the default 4-day window as YYYY-MM-DD in UTC', () => {
     const now = new Date('2026-06-19T08:00:00.000Z');
-    expect(buildFrDateRange(now)).toEqual({ gte: '2026-06-18', lte: '2026-06-19' });
+    expect(buildFrDateRange(now)).toEqual({ gte: '2026-06-15', lte: '2026-06-19' });
   });
 });
 

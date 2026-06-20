@@ -30,7 +30,14 @@ import type { IngestionRecord } from './ingestion/ingestionTypes';
 const EPO_AUTH_URL = 'https://ops.epo.org/3.2/auth/accesstoken';
 const EPO_SEARCH_URL = 'https://ops.epo.org/3.2/rest-services/published-data/search/biblio';
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 86,400,000 ms
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 86,400,000 ms — cache freshness
+
+/**
+ * Publication lookback window. EPO publishes weekly (Wednesdays), so a 24h window
+ * returns nothing ~6 days out of 7. Default 7 days; override via EPO_LOOKBACK_DAYS.
+ * Decoupled from the cache TTL.
+ */
+const LOOKBACK_MS = Number(process.env.EPO_LOOKBACK_DAYS ?? 7) * 24 * 60 * 60 * 1000;
 
 /** Cache path resolved at call time so it honours EPO_CACHE_PATH overrides. */
 function cacheFile(): string {
@@ -90,7 +97,7 @@ function utcYmd(date: Date): string {
  * `pd within "20260618 20260619"`. Pure + exported for testability (Req 9.x).
  */
 export function buildPublicationDateQuery(now: Date): string {
-  const from = new Date(now.getTime() - CACHE_TTL_MS);
+  const from = new Date(now.getTime() - LOOKBACK_MS);
   return `pd within "${utcYmd(from)} ${utcYmd(now)}"`;
 }
 

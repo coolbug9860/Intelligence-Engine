@@ -103,10 +103,10 @@ afterEach(() => {
   delete process.env.EPO_CONSUMER_SECRET;
 });
 
-describe('buildPublicationDateQuery — rolling 24h UTC lookback (Req 9.x)', () => {
-  it('should build a pd-within clause spanning the prior 24h in UTC', () => {
+describe('buildPublicationDateQuery — rolling lookback in UTC (Req 9.x)', () => {
+  it('should build a pd-within clause spanning the default 7-day window in UTC', () => {
     const now = new Date('2026-06-19T08:00:00.000Z');
-    expect(buildPublicationDateQuery(now)).toBe('pd within "20260618 20260619"');
+    expect(buildPublicationDateQuery(now)).toBe('pd within "20260612 20260619"');
   });
 });
 

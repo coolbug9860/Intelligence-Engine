@@ -30,7 +30,14 @@ import type { IngestionRecord } from './ingestion/ingestionTypes';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FR_DOCUMENTS_URL = 'https://www.federalregister.gov/api/v1/documents.json';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 86,400,000 ms
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 86,400,000 ms — cache freshness
+
+/**
+ * Publication lookback window. The Federal Register does not publish on weekends or
+ * federal holidays, so a 24h window returns nothing on those days. Default 4 days
+ * (bridges a weekend); override via FR_LOOKBACK_DAYS. Decoupled from the cache TTL.
+ */
+const LOOKBACK_MS = Number(process.env.FR_LOOKBACK_DAYS ?? 4) * 24 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 10_000;
 const RESULT_PER_PAGE = 25;
 const MAX_EXCERPT_LENGTH = 700;
@@ -119,7 +126,7 @@ function utcDate(date: Date): string {
 
 /** Rolling 24h UTC publication_date window (YYYY-MM-DD). Exported for tests (Req 9.1). */
 export function buildFrDateRange(now: Date): { gte: string; lte: string } {
-  return { gte: utcDate(new Date(now.getTime() - CACHE_TTL_MS)), lte: utcDate(now) };
+  return { gte: utcDate(new Date(now.getTime() - LOOKBACK_MS)), lte: utcDate(now) };
 }
 
 function normalizeDate(raw: unknown): string {
