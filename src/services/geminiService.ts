@@ -512,6 +512,28 @@ function isCommerciallyRelevant(title?: string): boolean {
   return words.some((w) => RELEVANCE_TERMS.has(w));
 }
 
+/**
+ * Consumer / retail-investor / personal-finance noise that should never seed a B2B
+ * syndicated report. General markets and personal-finance columns leak items like
+ * "I'm 55 and retiring", "Roth 401(k) tips", or "Wall Street vs Main Street" that pass
+ * the commercial-relevance gate yet have no enterprise buyer. Conservative, high-
+ * precision substring list — drops only clearly non-B2B consumer-finance items. Tunable.
+ * (Note: "ira" is intentionally excluded — "IRA" is also the Inflation Reduction Act.)
+ */
+const RETAIL_NOISE_TERMS: string[] = [
+  "401k", "401(k)", "roth", "retire", "personal finance", "mortgage rate",
+  "credit score", "savings account", "how to invest", "stock pick",
+  "dividend stock", "student loan", "social security", "homebuyer",
+  "home buyer", "main street",
+];
+
+/** True when a headline is clearly consumer/retail-investor noise, not a B2B signal. */
+export function isRetailNoise(title?: string): boolean {
+  if (!title) return false;
+  const t = title.toLowerCase();
+  return RETAIL_NOISE_TERMS.some((term) => t.includes(term));
+}
+
 // Vertical keyword map for stratified sampling
 // Each vertical gets up to 5 articles ensuring all 14 verticals
 // have representation in every Gemini analysis call
@@ -548,7 +570,8 @@ function classifyArticleVertical(title: string, excerpt: string): string | null 
 function prepareArticles(articles: RSSArticle[]) {
   const commercialArticles = articles
     .filter((a) => a?.title)
-    .filter((a) => isCommerciallyRelevant(a.title));
+    .filter((a) => isCommerciallyRelevant(a.title))
+    .filter((a) => !isRetailNoise(a.title));
 
   // Stratified sampling: up to ARTICLES_PER_VERTICAL articles per vertical
   const buckets: Record<string, RSSArticle[]> = {};
