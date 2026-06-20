@@ -82,7 +82,13 @@ export async function enrichFullText(rec: IngestionRecord): Promise<EnrichedReco
   const timer = setTimeout(() => controller.abort(), ENRICH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(rec.full_text_url, { signal: controller.signal });
+    const response = await fetch(rec.full_text_url, {
+      headers: {
+        // Descriptive UA — several gov/procurement hosts 403 a header-less fetch.
+        'User-Agent': 'KaisoResearch/1.0 (market intelligence platform; contact@kaisoresearch.com)',
+      },
+      signal: controller.signal,
+    });
     if (!response.ok) {
       console.warn(`[KeywordGate] full-text fetch HTTP ${response.status} for ${rec.external_id}`);
       return { ...rec, enrichmentCompleted: false };

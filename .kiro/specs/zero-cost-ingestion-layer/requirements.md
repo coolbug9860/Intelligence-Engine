@@ -142,18 +142,19 @@ These requirements are derived from and remain consistent with the approved `des
 5. THE Zero_Cost_Ingestion_Layer SHALL derive SAM watchlist notice IDs exclusively from Federal Register full-text payload extraction as defined in criterion 4, and SHALL NOT obtain SAM watchlist notice IDs by keyword sweep or any other source.
 6. IF a Federal Register request fails, returns a non-OK response, or does not complete within 30 seconds, THEN THE Federal_Register_Connector SHALL emit a warning log entry, return an empty `IngestionRecord[]`, and SHALL NOT throw an exception.
 
-### Requirement 9: Strict Rolling 24-Hour Lookback Window
+### Requirement 9: Rolling Lookback Windows (per-source cadence)
 
-**User Story:** As a platform operator, I want Federal Register, EU TED, and UK FTS queries scoped to a strict rolling 24-hour window, so that payloads stay lightweight and aligned with the daily processing cycle.
+**User Story:** As a platform operator, I want each connector's lookback window tuned to its source's publication cadence, so that continuously-published sources stay lightweight while low-cadence sources (which skip weekends or publish weekly) still return data.
 
 #### Acceptance Criteria
 
-1. WHEN the Federal_Register_Connector builds a query, THE Federal_Register_Connector SHALL restrict results to notices whose publication timestamp falls within the rolling window [T − 24 hours, T], where T is the query build time expressed in UTC, with the lower bound inclusive and the upper bound inclusive.
-2. WHEN the TED_Connector builds a query, THE TED_Connector SHALL restrict results to notices whose publication timestamp falls within the rolling window [T − 24 hours, T], where T is the query build time expressed in UTC, with the lower bound inclusive and the upper bound inclusive.
-3. WHEN the UK_FTS_Connector builds a query, THE UK_FTS_Connector SHALL restrict results to notices whose publication timestamp falls within the rolling window [T − 24 hours, T], where T is the query build time expressed in UTC, with the lower bound inclusive and the upper bound inclusive.
-4. IF a connector receives a notice whose publication timestamp falls outside the rolling window [T − 24 hours, T], THEN THE connector SHALL exclude that notice from the ingested result set.
-5. WHEN the Zero_Cost_Ingestion_Layer starts a daily processing cycle, THE Zero_Cost_Ingestion_Layer SHALL set the lookback window so that its lower bound equals the upper bound of the immediately preceding cycle's window, producing zero gap and zero overlap between consecutive cycles.
-6. THE Zero_Cost_Ingestion_Layer SHALL execute exactly one ingestion cycle per 24-hour period, such that each cycle ingests exactly one 24-hour span of new notices.
+1. WHEN the Federal_Register_Connector builds a query, THE Federal_Register_Connector SHALL restrict results to a rolling window of `FR_LOOKBACK_DAYS` days (default 4) ending at the query build time in UTC, because the Federal Register does not publish on weekends or federal holidays.
+2. WHEN the TED_Connector builds a query, THE TED_Connector SHALL restrict results to a rolling 24-hour window ending at the query build time in UTC.
+3. WHEN the UK_FTS_Connector builds a query, THE UK_FTS_Connector SHALL restrict results to a rolling 24-hour window ending at the query build time in UTC.
+4. WHEN the EPO_Connector builds a query, THE EPO_Connector SHALL restrict results to a rolling window of `EPO_LOOKBACK_DAYS` days (default 7) ending at the query build time in UTC, because EPO publishes patents on a weekly cadence.
+5. IF a connector receives a notice whose publication timestamp falls outside its configured lookback window, THEN THE connector SHALL exclude that notice from the ingested result set.
+6. WHERE a connector's lookback window exceeds 24 hours, THE Zero_Cost_Ingestion_Layer MAY ingest the same notice across consecutive daily cycles; downstream deduplication and the keyword gate SHALL prevent duplicate notices from producing duplicate signals.
+7. THE lookback window for each connector SHALL be resolved from its environment variable at process start, falling back to the documented default when unset.
 
 ### Requirement 10: BLS Series Keying to Kaiso Verticals
 
