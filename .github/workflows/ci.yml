@@ -1,0 +1,34 @@
+name: CI
+
+# Runs typecheck + tests on every PR into main and on pushes to main.
+# No secrets are used — the test suite mocks all network/HTTP, so CI needs
+# no API keys and exercises the same 177-test suite verified locally.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Typecheck & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (tsc --noEmit)
+        run: npx tsc --noEmit
+
+      - name: Run tests (vitest)
+        run: npx vitest run
