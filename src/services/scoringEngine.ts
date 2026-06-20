@@ -1,5 +1,6 @@
 import { ReportSuggestion } from "../types";
 import type { VerticalCalibration } from "./outcomeLedger";
+import type { BlsReferenceTable } from "./blsReferenceService";
 
 /**
  * Deterministic scoring engine for Kaiso Intelligence Hub.
@@ -29,8 +30,16 @@ import type { VerticalCalibration } from "./outcomeLedger";
  *
  * Net effect: among credible ideas, the most sellable rank highest; ideas that are
  * commercially strong but poorly evidenced get dampened into MONITOR/PASS territory.
+ *
+ * @param blsReference Optional, RESERVED macro reference table (Task 6 / Req 4.6, 4.7).
+ *        Currently UNREAD — present only so future macro weighting can be wired in
+ *        without changing call sites. Passing it does NOT change the output today.
  */
-export function calculateOpportunityScore(suggestion: ReportSuggestion, calibration?: VerticalCalibration): ReportSuggestion {
+export function calculateOpportunityScore(
+  suggestion: ReportSuggestion,
+  calibration?: VerticalCalibration,
+  blsReference?: BlsReferenceTable,
+): ReportSuggestion {
 
   // ────────────────────────────────────────────────────────────────────────────
   // 1. COMMERCIAL CORE (0–100) — the primary ranking driver.

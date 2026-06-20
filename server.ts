@@ -12,7 +12,13 @@ import {
   generateFullBrief,
 } from "./src/services/geminiService";
 import { fetchEdgarSignals } from "./src/services/edgarService";
-import { fetchSamGovSignals, SamSignal } from "./src/services/samGovService";
+import { fetchSamNoticeById } from "./src/services/samGovService";
+import { fetchTedNotices } from "./src/services/tedService";
+import { fetchUkFtsNotices } from "./src/services/ukFtsService";
+import { fetchFederalRegisterNotices } from "./src/services/federalRegisterService";
+import { fetchEpoPatents } from "./src/services/epoService";
+import { assembleCombinedSignals } from "./src/services/ingestion/assembleIngestion";
+import type { IngestionRecord } from "./src/services/ingestion/ingestionTypes";
 import { generateBriefDocxBuffer } from "./src/services/briefExportServer";
 import { enrichWithTrends } from "./src/services/trendsService";
 import { enrichWithWhiteSpaceDetection } from "./src/services/serpOpportunityDetectionService";
@@ -675,41 +681,77 @@ app.post("/api/intelligence/run", async (req, res) => {
   try {
     const { articles, watchlistTitles, previousMemory } = req.body;
 
-    // Fetch RSS feeds, EDGAR signals, and SAM.gov signals in parallel — saves ~3-5s per run
-    const [{ articles: rssArticles }, edgarSignals, samGovSignals] = await Promise.all([
-      ingestStableRssFeeds(),
-      fetchEdgarSignals().catch((err) => {
-        // EDGAR failure is non-fatal — pipeline continues with RSS only
-        console.warn("[EDGAR] Fetch failed, continuing without EDGAR signals:", err);
-        return [] as EDGARSignal[];
-      }),
-      fetchSamGovSignals([]).catch((err) => {
-        // SAM.gov failure is non-fatal — pipeline continues without contract signals
-        console.warn("[SAM.gov] Fetch failed, continuing without SAM.gov signals:", err);
-        return [] as SamSignal[];
-      }),
+    // ── Phase 0: Ingestion — single request-triggered, in-process fan-out ──
+    // Promise.allSettled isolates per-source failure: one connector down can
+    // never abort the cycle. Each connector is already non-fatal internally;
+    // settledOr handles the rare hard rejection too.
+    const settled = await Promise.allSettled([
+      ingestStableRssFeeds(),          // 0 — RSS + NewsAPI
+      fetchEdgarSignals(),             // 1 — SEC EDGAR
+      fetchTedNotices(),               // 2 — EU TED
+      fetchUkFtsNotices(),             // 3 — UK FTS + Contracts Finder
+      fetchFederalRegisterNotices(),   // 4 — US Federal Register (SAM watchlist source)
+      fetchEpoPatents(),               // 5 — EU EPO patents
     ]);
 
-    // Adapt SAM.gov contract opportunities into the EDGAR-shaped signal stream
-    // that Stage 1 (analyzeNews) already consumes — no pipeline/type changes.
-    const adaptedSamSignals: EDGARSignal[] = samGovSignals.map((s) => ({
-      title: s.title,
-      filingType: s.noticeType,
-      companyName: s.agency,
-      filingDate: s.postedDate,
-      excerpt: s.excerpt,
-      url: s.url,
-      vertical: s.vertical,
-      matchedKeyword: s.matchedKeyword,
-    }));
-    const combinedSignals: EDGARSignal[] = [...edgarSignals, ...adaptedSamSignals];
+    function settledOr<T>(r: PromiseSettledResult<T>, fallback: T, label: string): T {
+      if (r.status === "fulfilled") return r.value;
+      console.warn(`[Ingestion] ${label} connector rejected (non-fatal):`, r.reason);
+      return fallback;
+    }
 
+    const rssArticles: RSSArticle[] =
+      settled[0].status === "fulfilled" ? (settled[0].value.articles ?? []) : [];
+    if (settled[0].status === "rejected") {
+      console.warn("[Ingestion] RSS connector rejected (non-fatal):", settled[0].reason);
+    }
+    const edgarSignals  = settledOr<EDGARSignal[]>(settled[1], [], "EDGAR");
+    const tedRecords    = settledOr<IngestionRecord[]>(settled[2], [], "EU-TED");
+    const ukFtsRecords  = settledOr<IngestionRecord[]>(settled[3], [], "UK-FTS");
+    const fedRegRecords = settledOr<IngestionRecord[]>(settled[4], [], "US-FederalRegister");
+    const epoRecords    = settledOr<IngestionRecord[]>(settled[5], [], "EU-EPO");
+
+    // ── Local zero-LLM keyword gate, watchlist hand-off, adapter merge ─────
+    // All assembly logic lives in the pure, tested `assembleCombinedSignals`
+    // helper (Task 8.1). SAM lookups are injected so the quota gate is honoured.
     const bodyArticles = Array.isArray(articles) ? articles : [];
     const pipelineArticles =
       rssArticles.length > 0 ? rssArticles : bodyArticles;
+    const rejectedCount = settled.filter((s) => s.status === "rejected").length;
 
+    const assembled = await assembleCombinedSignals({
+      rssArticleCount: pipelineArticles.length,
+      edgarSignals,
+      tedRecords,
+      ukFtsRecords,
+      fedRegRecords,
+      epoRecords,
+      rejectedCount,
+      samLookup: fetchSamNoticeById,
+    });
+    const combinedSignals = assembled.combinedSignals;
+
+    // ── Observability: distinguish PARTIAL SUCCESS from TOTAL FAILURE ──────
+    if (assembled.status === "TOTAL_FAILURE") {
+      console.error("[Ingestion] TOTAL FAILURE — no source returned data this cycle; pipeline will run empty.");
+    } else if (assembled.status === "PARTIAL_SUCCESS") {
+      console.warn(
+        `[Ingestion] PARTIAL SUCCESS — ${assembled.stats.sourcesWithData}/5 external sources returned data (${rejectedCount} hard-rejected). Pipeline continues.`
+      );
+    } else {
+      console.log("[Ingestion] FULL SUCCESS — all external sources returned data.");
+    }
+    if (assembled.watchlistIds.length > 0) {
+      console.log(
+        `[Watchlist] FedReg surfaced ${assembled.watchlistIds.length} solicitation ID(s); SAM returned ${assembled.samSignalCount} notice(s).`
+      );
+    }
+
+    const st = assembled.stats;
     console.log(
-      `[Pipeline] RSS: ${pipelineArticles.length} articles | EDGAR: ${edgarSignals.length} signals | SAM.gov: ${samGovSignals.length} signals`
+      `[Pipeline] RSS: ${pipelineArticles.length} | EDGAR: ${st.edgar} | TED: ${st.ted} | ` +
+      `UK-FTS: ${st.ukFts} | FedReg: ${st.fedReg} | EPO: ${st.epo} | ` +
+      `gated→signals: ${st.gatedSignals} | SAM: ${st.sam}`
     );
 
     // Memory durability: /tmp is wiped on every Render redeploy and cold start,

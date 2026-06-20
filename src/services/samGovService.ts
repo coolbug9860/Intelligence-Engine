@@ -1,30 +1,30 @@
 /**
- * samGovService.ts
+ * samGovService.ts (Task 7 — DEMOTED)
  *
- * Queries the SAM.gov Get Opportunities API (api.sam.gov/opportunities) for
- * recent federal contract opportunities that match Kaiso's industry verticals.
+ * SAM.gov is no longer a primary discovery stream. The mass vertical→keyword sweep
+ * has been removed to protect SAM.gov's ~10 requests/day public limit. SAM is now a
+ * SECONDARY, surgical lookup service: it fetches a single notice by ID, only when an
+ * ID is surfaced by the Federal Register connector (Module 1).
  *
- * Structurally mirrors edgarService.ts: vertical→keyword mapping, resilient
- * (non-fatal) fetch loop, parse-to-signal, and a 24-hour local JSON disk cache.
+ * Guarantees:
+ *   - `fetchSamNoticeById(noticeId)` issues AT MOST one request per call.
+ *   - A persistent daily quota gate (default 10/day, /tmp) hard-stops accidental
+ *     over-use: once the day's budget is spent, calls return null WITHOUT a request.
+ *   - Empty/whitespace ID, missing key, non-OK, not-found, timeout, or network error
+ *     all yield null — non-fatal, never throws.
+ *   - The `SamSignal` interface and the SamSignal→EDGARSignal seam are UNCHANGED.
  *
- * API KEY: SAM.gov's opportunities endpoint requires an `api_key` query
- * parameter. We read it from the SAM_GOV_API_KEY environment variable rather
- * than hardcoding it. The key is treated as OPTIONAL at the request layer: if
- * it is absent, the service logs and returns an empty array (defensive
- * fallback) exactly like EDGAR/NewsAPI degrade gracefully — it never throws and
- * never fabricates data. (A real SAM.gov call without a key returns 401/403.)
+ * Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.7
  *
- * API docs: https://open.gsa.gov/api/get-opportunities-public-api/
- *
- * Output: SamSignal[] — structured contract-opportunity signals tagged with
- * notice metadata and the matched Kaiso vertical.
+ * NOTE: The by-ID endpoint shape is coded to the documented SAM.gov v2 contract;
+ * validate against a live key before production.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LOCAL TYPE (declared here — types.ts is intentionally left unmodified)
+// LOCAL TYPE — UNCHANGED (the SamSignal→EDGARSignal seam depends on this shape)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface SamSignal {
@@ -35,144 +35,71 @@ export interface SamSignal {
   excerpt: string;        // Cleaned description text (≤700 chars)
   url: string;            // Human-readable SAM.gov UI link to the notice
   vertical: string;       // Matched Kaiso vertical
-  matchedKeyword: string; // The search keyword that surfaced this notice
+  matchedKeyword: string; // The keyword/ID that surfaced this notice
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SAM.GOV API CONFIG
+// CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SAMGOV_BASE_URL = 'https://api.sam.gov/opportunities/v2/search';
+const SAMGOV_NOTICE_URL = (id: string) =>
+  `https://api.sam.gov/opportunities/v2/opportunities/${encodeURIComponent(id)}`;
 
-// Optional — read from env, never hardcoded. Absent key → defensive no-op.
-const SAMGOV_API_KEY = process.env.SAM_GOV_API_KEY ?? '';
-
-// Descriptive User-Agent, mirroring EDGAR's fair-access courtesy header.
 const SAMGOV_USER_AGENT =
   'KaisoResearch/1.0 (market research intelligence platform; contact@kaisoresearch.com)';
 
-// How many notices to request per keyword query. Kept low; the global cap below
-// is the real ceiling.
-const RESULTS_PER_QUERY = 3;
-
-// Only pull notices posted in the last N days — keeps signals fresh.
-const DAYS_LOOKBACK = 30;
-
-// Cleaned-excerpt ceiling — same as EDGAR/RSS.
+const REQUEST_TIMEOUT_MS = 10_000;
 const MAX_EXCERPT_LENGTH = 700;
 
-// Strict ingestion-cycle cap: never return more than this many signals per run.
-const MAX_SIGNALS_PER_CYCLE = 50;
+/** Daily request budget, resolved at call time so overrides apply. */
+function dailyLimit(): number {
+  return Number(process.env.SAMGOV_DAILY_LIMIT ?? 10);
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VERTICAL → KEYWORD MAPPING (Kaiso's 14 canonical verticals)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const VERTICAL_KEYWORDS: Record<string, string[]> = {
-  'Healthcare': ['medical devices', 'digital health', 'healthcare services'],
-  'Electronics': ['electronic components', 'sensors', 'embedded systems'],
-  'Semiconductor': ['semiconductor', 'microelectronics', 'chip fabrication'],
-  'Automotive': ['electric vehicles', 'autonomous vehicles', 'fleet electrification'],
-  'Chemicals': ['specialty chemicals', 'advanced materials', 'industrial coatings'],
-  'Energy': ['renewable energy', 'energy storage', 'grid modernization'],
-  'Fintech': ['digital payments', 'financial technology', 'blockchain services'],
-  'Aerospace': ['unmanned aerial systems', 'satellite communications', 'space systems'],
-  'BFSI': ['banking services', 'insurance technology', 'financial management'],
-  'Food & Beverage': ['food supply chain', 'food safety', 'cold chain logistics'],
-  'Construction': ['infrastructure construction', 'modular construction', 'facility modernization'],
-  'Agriculture': ['precision agriculture', 'agricultural technology', 'crop systems'],
-  'Retail & E-Commerce': ['e-commerce logistics', 'supply chain technology', 'last mile delivery'],
-  'IT & Telecom': ['5G infrastructure', 'cloud migration', 'cybersecurity services'],
-};
-
-/** Reverse-lookup the vertical a caller-supplied keyword belongs to. */
-function verticalForKeyword(keyword: string): string {
-  const k = keyword.toLowerCase().trim();
-  for (const [vertical, keywords] of Object.entries(VERTICAL_KEYWORDS)) {
-    if (keywords.some((kw) => kw.toLowerCase() === k)) return vertical;
-  }
-  return 'General';
+function quotaFile(): string {
+  return process.env.SAMGOV_QUOTA_PATH ?? path.join('/tmp', 'samgov-quota.json');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DISK CACHE — 24-HOUR TTL
-//
-// Mirrors edgarService's caching: shields runtime from repeated endpoint
-// queries. Cache file: /tmp/samgov-cache.json by default (override with
-// SAMGOV_CACHE_PATH). /tmp persists for the life of the running instance and is
-// writable on Render (unlike process.cwd()).
+// DAILY QUOTA GATE — persistent protection for the ~10 req/day limit
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_FILE = process.env.SAMGOV_CACHE_PATH ?? path.join('/tmp', 'samgov-cache.json');
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-interface SamGovCache {
-  fetchedAt: string; // ISO timestamp of when the cache was written
-  signals: SamSignal[];
+interface QuotaState {
+  date: string;  // UTC YYYY-MM-DD the count applies to
+  count: number; // requests already spent today
 }
 
-/** Read cache from disk. Returns null if file doesn't exist or is unreadable. */
-function readCache(): SamGovCache | null {
+function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Read today's quota; resets automatically when the stored date is not today. */
+function readQuota(): QuotaState {
+  const today = todayUtc();
   try {
-    if (!fs.existsSync(CACHE_FILE)) return null;
-    const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
-    return JSON.parse(raw) as SamGovCache;
+    const file = quotaFile();
+    if (fs.existsSync(file)) {
+      const stored = JSON.parse(fs.readFileSync(file, 'utf-8')) as QuotaState;
+      if (stored?.date === today && typeof stored.count === 'number') return stored;
+    }
   } catch {
-    return null;
+    /* fall through to a fresh count */
   }
+  return { date: today, count: 0 };
 }
 
-/** Write signals to disk cache with current timestamp. */
-function writeCache(signals: SamSignal[]): void {
+function writeQuota(state: QuotaState): void {
   try {
-    const cache: SamGovCache = {
-      fetchedAt: new Date().toISOString(),
-      signals,
-    };
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8');
-    console.log(`[SAM.gov] Cache written: ${signals.length} signals → samgov-cache.json`);
+    fs.writeFileSync(quotaFile(), JSON.stringify(state), 'utf-8');
   } catch (err) {
-    // Non-fatal — if we can't write cache, just continue without it.
-    console.warn('[SAM.gov] Failed to write cache:', err);
+    console.warn('[SAM.gov] Failed to persist quota:', err);
   }
-}
-
-/** Returns true if the cache exists and was written less than 24 hours ago. */
-function isCacheValid(cache: SamGovCache): boolean {
-  const age = Date.now() - new Date(cache.fetchedAt).getTime();
-  return age < CACHE_TTL_MS;
-}
-
-/** Human-readable cache age string for logs, e.g. "3h 42m". */
-function cacheAgeLabel(fetchedAt: string): string {
-  const ageMs = Date.now() - new Date(fetchedAt).getTime();
-  const hours = Math.floor(ageMs / (1000 * 60 * 60));
-  const minutes = Math.floor((ageMs % (1000 * 60 * 60)) / (1000 * 60));
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Returns an MM/DD/YYYY date string N days ago — SAM.gov's postedFrom format. */
-function daysAgoSamDate(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${mm}/${dd}/${d.getFullYear()}`;
-}
-
-/** SAM.gov's postedTo format for "today" (MM/DD/YYYY). */
-function todaySamDate(): string {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${mm}/${dd}/${d.getFullYear()}`;
-}
-
-/** Strip HTML tags and collapse whitespace for clean excerpt text. */
 function cleanText(raw: string): string {
   return raw
     .replace(/<[^>]+>/g, ' ')
@@ -181,79 +108,35 @@ function cleanText(raw: string): string {
     .slice(0, MAX_EXCERPT_LENGTH);
 }
 
-/**
- * Fetch one SAM.gov opportunities query.
- * Returns the raw opportunity objects from the API (empty on any non-OK
- * response — logged, never thrown, mirroring EDGAR).
- */
-async function fetchSamGovResults(
-  keyword: string,
-  postedFrom: string,
-  postedTo: string
-): Promise<any[]> {
-  const params = new URLSearchParams({
-    keyword,
-    postedFrom,
-    postedTo,
-    limit: String(RESULTS_PER_QUERY),
-    offset: '0',
-  });
-
-  // api_key is included only when configured. Absent key → likely 401/403,
-  // which we handle below as a non-fatal skip.
-  if (SAMGOV_API_KEY) {
-    params.set('api_key', SAMGOV_API_KEY);
+async function fetchWithTimeout(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, {
+      headers: { 'User-Agent': SAMGOV_USER_AGENT, Accept: 'application/json' },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
   }
-
-  const url = `${SAMGOV_BASE_URL}?${params.toString()}`;
-
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': SAMGOV_USER_AGENT,
-      'Accept': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    console.warn(`[SAM.gov] HTTP ${response.status} for query: "${keyword}"`);
-    return [];
-  }
-
-  const data = await response.json();
-
-  // SAM.gov v2 response shape: { totalRecords, opportunitiesData: [...] }
-  return data?.opportunitiesData ?? [];
 }
 
-/**
- * Parse a single SAM.gov opportunity into a SamSignal.
- * Returns null if essential fields are missing.
- */
-function parseSamOpportunity(
-  op: any,
-  vertical: string,
-  matchedKeyword: string
-): SamSignal | null {
+/** Parse a single SAM.gov opportunity into a SamSignal; null if essentials are missing. */
+function parseSamNotice(op: any, noticeId: string): SamSignal | null {
   try {
-    const title: string = op.title ?? 'Untitled Notice';
-    const noticeType: string = op.type ?? op.baseType ?? 'Notice';
-    const agency: string =
-      op.fullParentPathName ?? op.organizationName ?? op.department ?? 'Unknown Agency';
-    const postedDate: string = op.postedDate ?? op.publishDate ?? '';
+    const title: string = op?.title ?? '';
+    if (!title) return null;
 
-    // `description` is sometimes a text blob, sometimes a URL to fetch the text.
-    // Use it only when it looks like text; otherwise fall back to the title.
-    const rawDescription: string = typeof op.description === 'string' ? op.description : '';
+    const noticeType: string = op?.type ?? op?.baseType ?? 'Notice';
+    const agency: string =
+      op?.fullParentPathName ?? op?.organizationName ?? op?.department ?? 'Unknown Agency';
+    const postedDate: string = op?.postedDate ?? op?.publishDate ?? '';
+
+    const rawDescription: string = typeof op?.description === 'string' ? op.description : '';
     const looksLikeUrl = /^https?:\/\//i.test(rawDescription.trim());
     const rawExcerpt = looksLikeUrl || !rawDescription ? title : rawDescription;
 
-    const url: string =
-      op.uiLink ??
-      (op.noticeId
-        ? `https://sam.gov/opp/${op.noticeId}/view`
-        : 'https://sam.gov/search/?index=opp');
-
-    if (!title) return null;
+    const url: string = op?.uiLink ?? `https://sam.gov/opp/${encodeURIComponent(noticeId)}/view`;
 
     return {
       title: `${title} — ${noticeType}`,
@@ -262,8 +145,8 @@ function parseSamOpportunity(
       postedDate,
       excerpt: cleanText(rawExcerpt),
       url,
-      vertical,
-      matchedKeyword,
+      vertical: 'General',
+      matchedKeyword: noticeId,
     };
   } catch {
     return null;
@@ -271,101 +154,67 @@ function parseSamOpportunity(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MAIN EXPORT
+// MAIN EXPORT — surgical by-ID lookup
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * fetchSamGovSignals(keywords)
- *
- * Queries SAM.gov for contract opportunities. When `keywords` are supplied they
- * drive the search (each mapped back to its Kaiso vertical where possible);
- * otherwise the full 14-vertical keyword map is used. Deduplicates, caps the
- * result at MAX_SIGNALS_PER_CYCLE (50), and returns a clean SamSignal[].
- *
- * Resilient by design: missing API key, slow endpoint, or per-query failure all
- * log a warning and continue, so the caller never breaks. Returns [] in the
- * worst case rather than throwing.
+ * Fetch a SINGLE SAM.gov notice by its ID. Returns null (non-fatal "unavailable")
+ * for an empty ID, a missing API key, an exhausted daily quota, a non-OK/not-found
+ * response, a timeout, or a network error. Issues at most one request, and only when
+ * the daily quota permits.
  */
-export async function fetchSamGovSignals(keywords: string[] = []): Promise<SamSignal[]> {
-  // ── Cache check ────────────────────────────────────────────────────────────
-  const cached = readCache();
-  if (cached && isCacheValid(cached)) {
-    console.log(
-      `[SAM.gov] Cache hit — ${cached.signals.length} signals loaded from disk ` +
-      `(age: ${cacheAgeLabel(cached.fetchedAt)})`
-    );
-    return cached.signals;
+export async function fetchSamNoticeById(noticeId: string): Promise<SamSignal | null> {
+  // Guard: no ID → no request (Req 5.3).
+  if (!noticeId || !noticeId.trim()) {
+    return null;
   }
 
-  if (cached) {
-    console.log(`[SAM.gov] Cache expired (age: ${cacheAgeLabel(cached.fetchedAt)}) — fetching fresh signals...`);
-  } else {
-    console.log('[SAM.gov] No cache found — fetching fresh signals...');
-  }
-  // ── End cache check ─────────────────────────────────────────────────────────
-
-  // Defensive fallback: without a key the endpoint cannot be queried. Skip
-  // cleanly (and don't poison the cache) rather than hammering it for 401s.
-  if (!SAMGOV_API_KEY) {
-    console.log(
-      '[SAM.gov] No SAM_GOV_API_KEY configured — skipping. ' +
-      'Add the key in environment variables to enable contract-opportunity signals.'
-    );
-    return [];
+  const apiKey = process.env.SAM_GOV_API_KEY ?? '';
+  if (!apiKey) {
+    console.warn('[SAM.gov] SAM_GOV_API_KEY not configured — lookup skipped.');
+    return null;
   }
 
-  // Build the (vertical, keyword) query list.
-  const queries: Array<{ vertical: string; keyword: string }> =
-    keywords.length > 0
-      ? keywords.map((k) => ({ vertical: verticalForKeyword(k), keyword: k }))
-      : Object.entries(VERTICAL_KEYWORDS).flatMap(([vertical, kws]) =>
-          kws.map((keyword) => ({ vertical, keyword }))
-        );
+  // Quota gate: hard-stop BEFORE any network call (Req 5.7, budget protection).
+  const limit = dailyLimit();
+  const quota = readQuota();
+  if (quota.count >= limit) {
+    console.warn(`[SAM.gov] Daily quota of ${limit} reached — lookup unavailable for "${noticeId}".`);
+    return null;
+  }
 
-  const postedFrom = daysAgoSamDate(DAYS_LOOKBACK);
-  const postedTo = todaySamDate();
+  // Reserve the request against the daily budget before spending it.
+  writeQuota({ date: quota.date, count: quota.count + 1 });
 
-  const allSignals: SamSignal[] = [];
-  const seen = new Set<string>();
+  try {
+    const params = new URLSearchParams({ api_key: apiKey });
+    const url = `${SAMGOV_NOTICE_URL(noticeId)}?${params.toString()}`;
+    const response = await fetchWithTimeout(url);
 
-  console.log(
-    `[SAM.gov] Starting fetch across ${queries.length} queries, looking back ${DAYS_LOOKBACK} days...`
-  );
-
-  for (const { vertical, keyword } of queries) {
-    // Stop early once the strict per-cycle cap is reached.
-    if (allSignals.length >= MAX_SIGNALS_PER_CYCLE) break;
-
-    try {
-      const opportunities = await fetchSamGovResults(keyword, postedFrom, postedTo);
-
-      for (const op of opportunities) {
-        const signal = parseSamOpportunity(op, vertical, keyword);
-        if (!signal) continue;
-
-        // Deduplicate by title + agency + posted date.
-        const dedupeKey = `${signal.title}|${signal.agency}|${signal.postedDate}`;
-        if (seen.has(dedupeKey)) continue;
-        seen.add(dedupeKey);
-
-        allSignals.push(signal);
-        if (allSignals.length >= MAX_SIGNALS_PER_CYCLE) break;
-      }
-    } catch (err) {
-      // Non-fatal: log and continue to the next keyword.
-      console.warn(`[SAM.gov] Failed to fetch for keyword "${keyword}":`, err);
+    if (!response.ok) {
+      console.warn(`[SAM.gov] HTTP ${response.status} for notice "${noticeId}".`);
+      return null;
     }
 
-    // 150ms pause between requests — courteous rate limiting, mirrors EDGAR.
-    await new Promise((r) => setTimeout(r, 150));
+    const data = await response.json();
+    const op = Array.isArray(data?.opportunitiesData)
+      ? data.opportunitiesData[0]
+      : data?.opportunitiesData ?? data;
+
+    return op ? parseSamNotice(op, noticeId) : null;
+  } catch (err) {
+    console.warn(`[SAM.gov] Lookup failed for notice "${noticeId}":`, err);
+    return null;
   }
+}
 
-  // Strict slice cap as a final guarantee (never exceed 50 per cycle).
-  const capped = allSignals.slice(0, MAX_SIGNALS_PER_CYCLE);
-
-  console.log(`[SAM.gov] Complete: ${capped.length} unique signals fetched (cap ${MAX_SIGNALS_PER_CYCLE})`);
-
-  writeCache(capped);
-
-  return capped;
+/**
+ * @deprecated SAM.gov mass keyword discovery has been removed (Task 7). This stub
+ * remains only so existing imports keep compiling until server.ts is rewired (Task 8).
+ * It performs NO network calls and returns no signals. Use `fetchSamNoticeById` for
+ * surgical, watchlist-driven lookups instead.
+ */
+export async function fetchSamGovSignals(_keywords: string[] = []): Promise<SamSignal[]> {
+  console.warn('[SAM.gov] fetchSamGovSignals is deprecated and disabled — use fetchSamNoticeById.');
+  return [];
 }
