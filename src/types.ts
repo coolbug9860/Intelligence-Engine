@@ -220,6 +220,16 @@ opportunityScore?: number;
   actionReason?: string;                // One plain-English sentence explaining the verdict
   actionScore?: number;                 // 0–100 composite score (opportunityScore + ws + trend)
   actionUrgency?: 'HIGH' | 'MEDIUM' | 'LOW';
+
+  // Council Review (councilEngine) — ADVISORY ONLY. A Gemini "second opinion" on
+  // borderline opportunities. NEVER alters opportunityScore, confidence, or
+  // actionVerdict; it is a displayed annotation only.
+  councilReview?: {
+    skepticNote: string;          // Differentiation / commoditisation critique
+    buyerNote: string;            // Enterprise willingness-to-pay assessment
+    chairmanVerdict: string;      // One-line synthesis of the two reviewers
+    suggestedConfidence?: number; // 0–10, advisory only — what the council WOULD score (not applied)
+  };
 }
 
 export interface IntelligenceBrief {
