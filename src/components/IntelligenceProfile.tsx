@@ -53,7 +53,10 @@ export const IntelligenceProfile: React.FC<IntelligenceProfileProps> = ({ profil
 
   if (isCompact) {
     return (
-      <div className="flex justify-center gap-1 h-3 mt-1 px-2">
+      <div
+        className="flex justify-center gap-1 h-3 mt-1 px-2 cursor-help"
+        title={`Intelligence Profile (hover bars for %): ${metrics.map(m => m.label).join(' · ')}`}
+      >
         {metrics.map((m, idx) => (
           <div key={m.label} title={`${m.label}: ${(m.value * 100).toFixed(0)}%`} className="flex-1 bg-slate-100 rounded-full overflow-hidden flex flex-col justify-end">
             <motion.div

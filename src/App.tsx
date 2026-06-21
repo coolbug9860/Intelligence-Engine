@@ -454,7 +454,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
           </section>
 
           {/* RIGHT: SUGGESTION LIST */}
-          <section className="flex-1 flex flex-col overflow-hidden bg-white">
+          <section className="flex-1 flex flex-col overflow-hidden bg-white border-l-2 border-slate-300">
             <div className="p-4 border-b border-slate-300 flex justify-between items-center bg-white">
               <div className="flex items-center gap-4">
                 <div className="flex flex-col gap-0.5">

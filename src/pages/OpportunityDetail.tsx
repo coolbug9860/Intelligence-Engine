@@ -260,7 +260,10 @@ export default function OpportunityDetail() {
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <span className="text-[9px] font-black px-2 py-0.5 bg-[#1A3668] text-white rounded-sm uppercase tracking-widest">{s.vertical}</span>
                 {s.strategicPillar && <span className="text-[9px] font-black px-2 py-0.5 bg-[#D62828] text-white rounded-sm uppercase tracking-widest">{s.strategicPillar}</span>}
-                {s.signalType && <span className="text-[9px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded-sm uppercase tracking-widest border border-slate-200">{s.signalType}</span>}
+                {s.signalType
+                  && s.signalType.toUpperCase() !== (s.strategicPillar ?? '').toUpperCase()
+                  && s.signalType.toUpperCase() !== s.vertical.toUpperCase()
+                  && <span className="text-[9px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded-sm uppercase tracking-widest border border-slate-200">{s.signalType}</span>}
 
               </div>
               <h1 className="text-[15px] font-bold text-[#1A3668] leading-snug tracking-tight">
@@ -322,7 +325,7 @@ export default function OpportunityDetail() {
                 </div>
                 {typeof (s as any).actionScore === 'number' && (
                   <span className="text-[10px] font-black text-white/80">
-                    Action Score: <span className="text-white">{(s as any).actionScore}/100</span>
+                    Action Score <span className="font-bold text-white/60 normal-case">(composite)</span>: <span className="text-white">{(s as any).actionScore}/100</span>
                   </span>
                 )}
               </div>
@@ -352,8 +355,11 @@ export default function OpportunityDetail() {
 
                 {/* ── Ground-Truth Feedback: record the human commercial outcome ── */}
                 <div className="mt-4 pt-4 border-t border-slate-200/70">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
                     Record Commercial Outcome
+                  </p>
+                  <p className="text-[10px] text-slate-500 mb-2.5 font-medium">
+                    Click a button to log the real result — this trains the scoring model.
                   </p>
                   <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Record commercial outcome">
                     {([
@@ -381,6 +387,51 @@ export default function OpportunityDetail() {
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── ZONE 0.5: COUNCIL SECOND OPINION (advisory only) ── */}
+          {s.councilReview && (
+            <div className="bg-white rounded-xl border border-indigo-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-indigo-100 bg-indigo-50 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">Council Second Opinion</span>
+                {typeof s.councilReview.suggestedConfidence === 'number' && (
+                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-wider">
+                    Advisory Confidence: <span className="text-indigo-700">{s.councilReview.suggestedConfidence.toFixed(1)}/10</span>
+                  </span>
+                )}
+              </div>
+              <div className="px-6 py-5 space-y-4">
+
+                {/* Skeptic */}
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={15} className="mt-0.5 text-amber-500 shrink-0" strokeWidth={2.5} />
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Skeptic · Differentiation</p>
+                    <p className="text-[12px] text-slate-700 leading-relaxed">{s.councilReview.skepticNote}</p>
+                  </div>
+                </div>
+
+                {/* Buyer */}
+                <div className="flex items-start gap-3">
+                  <Briefcase size={15} className="mt-0.5 text-[#1A3668] shrink-0" strokeWidth={2.5} />
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Buyer · Willingness to Pay</p>
+                    <p className="text-[12px] text-slate-700 leading-relaxed">{s.councilReview.buyerNote}</p>
+                  </div>
+                </div>
+
+                {/* Chairman synthesis */}
+                <div className="flex items-start gap-3 pt-3 border-t border-slate-100">
+                  <ShieldCheck size={15} className="mt-0.5 text-indigo-600 shrink-0" strokeWidth={2.5} />
+                  <div>
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">Chairman · Verdict</p>
+                    <p className="text-[12px] font-semibold text-indigo-900 leading-relaxed">{s.councilReview.chairmanVerdict}</p>
+                  </div>
+                </div>
+
+                <p className="text-[9px] text-slate-400 italic pt-1">Advisory only — does not change the scores or commissioning decision above.</p>
               </div>
             </div>
           )}
@@ -580,7 +631,7 @@ export default function OpportunityDetail() {
 
           {/* ── CONFIDENCE SCORE ── */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Confidence Index</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Confidence Index <span className="text-slate-300 normal-case tracking-normal font-bold">· model 0–10</span></p>
             <div className="flex items-end gap-3 mb-3">
               <span className={`text-4xl font-black font-mono ${cc.text}`}>{(s.confidenceScore ?? 0).toFixed(1)}</span>
               <span className="text-slate-300 text-2xl font-thin mb-1">/ 10</span>
