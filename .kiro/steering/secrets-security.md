@@ -1,4 +1,5 @@
 ---
+description: Security policies, secrets management practices, authentication requirements, and vulnerability prevention guidelines
 inclusion: auto
 ---
 

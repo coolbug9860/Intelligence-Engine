@@ -1,4 +1,5 @@
 ---
+description: Enterprise coding standards, security requirements, testing practices, and code review guidelines
 inclusion: auto
 ---
 
