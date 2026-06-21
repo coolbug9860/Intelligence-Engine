@@ -125,7 +125,7 @@ export default function OpportunityDetail() {
     if (!brief || !s || exportingDocx) return;
     setExportingDocx(true);
     try {
-      const token = localStorage.getItem('kaiso_auth_token') ?? '';
+      const token = sessionStorage.getItem('kaiso_auth_token') ?? '';
       const response = await fetch('/api/brief/export-docx', {
         method: 'POST',
         headers: {
@@ -193,7 +193,7 @@ export default function OpportunityDetail() {
     if (!s || savingVerdict) return;
     setSavingVerdict(true);
     try {
-      const token = localStorage.getItem('kaiso_auth_token') ?? '';
+      const token = sessionStorage.getItem('kaiso_auth_token') ?? '';
       const response = await fetch('/api/outcomes/verdict', {
         method: 'POST',
         headers: {
