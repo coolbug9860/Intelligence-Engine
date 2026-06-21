@@ -23,6 +23,7 @@ import { generateBriefDocxBuffer } from "./src/services/briefExportServer";
 import { enrichWithTrends } from "./src/services/trendsService";
 import { enrichWithWhiteSpaceDetection } from "./src/services/serpOpportunityDetectionService";
 import { classifyPortfolio } from "./src/services/actionClassificationEngine";
+import { runCouncilReview } from "./src/services/councilEngine";
 import {
   readLedger,
   upsertVerdict,
@@ -824,6 +825,18 @@ app.post("/api/intelligence/run", async (req, res) => {
         console.log(`[Action] Classification complete — ${publishCount} PUBLISH NOW, ${monitorCount} MONITOR, ${passCount} PASS`);
       } catch (err) {
         console.warn('[Action] Classification failed, continuing without verdicts:', err);
+      }
+    }
+
+    // Council Review (advisory-only): a Gemini "second opinion" on borderline
+    // (MONITOR) opportunities — Skeptic + Buyer + Chairman in a single call each.
+    // Purely additive: it attaches a councilReview annotation and NEVER alters
+    // scores or verdicts. Non-fatal — on any failure the portfolio is unchanged.
+    if (state?.curatedPortfolio?.length) {
+      try {
+        state.curatedPortfolio = await runCouncilReview(state.curatedPortfolio);
+      } catch (err) {
+        console.warn('[Council] Review failed, continuing without advisory notes:', err);
       }
     }
 
