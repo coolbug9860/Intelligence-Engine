@@ -44,7 +44,7 @@ const TrendBadge = ({ label, direction, withSource }: { label?: string; directio
         {label}
       </span>
       {withSource && (
-        <span className="text-[9px] text-slate-400 pl-1 tracking-wide">Google Trends · 12mo</span>
+        <span className="text-[9px] text-slate-600 pl-1 tracking-wide">Google Trends · 12mo</span>
       )}
     </span>
   );
@@ -53,7 +53,7 @@ const TrendBadge = ({ label, direction, withSource }: { label?: string; directio
 const SectionDivider = ({ label }: { label: string }) => (
   <div className="flex items-center gap-3 my-6">
     <div className="h-px flex-1 bg-slate-200" />
-    <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">{label}</span>
+    <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-600">{label}</span>
     <div className="h-px flex-1 bg-slate-200" />
   </div>
 );
@@ -271,7 +271,7 @@ export default function OpportunityDetail() {
               </h1>
               {s.sourceArticleUrl && (
                 <a href={s.sourceArticleUrl} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-1 text-slate-400 hover:text-[#D62828] transition-colors text-[10px] uppercase tracking-tighter">
+                  className="inline-flex items-center gap-1 mt-1 text-slate-600 hover:text-[#D62828] transition-colors text-[10px] uppercase tracking-tighter">
                   <ExternalLink size={10} /> Source
                 </a>
               )}
@@ -285,7 +285,7 @@ export default function OpportunityDetail() {
               {exporting ? <Loader2 size={12} className="animate-spin" /> : <ImageIcon size={12} />}
               {exporting ? 'Generating…' : 'Export Snapshot'}
             </button>
-            <button onClick={() => window.close()} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-navy">
+            <button onClick={() => window.close()} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 hover:text-navy">
               <X size={18} />
             </button>
           </div>
@@ -339,7 +339,7 @@ export default function OpportunityDetail() {
                 </p>
                 {(s as any).actionUrgency && (
                   <div className="mt-3 flex items-center gap-2">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Urgency:</span>
+                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Urgency:</span>
                     <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
                       (s as any).actionUrgency === 'HIGH'   ? 'bg-red-100 text-red-700'    :
                       (s as any).actionUrgency === 'MEDIUM' ? 'bg-amber-100 text-amber-700' :
@@ -348,14 +348,14 @@ export default function OpportunityDetail() {
                       {(s as any).actionUrgency}
                     </span>
                     {s.marketExecutionWindow && (
-                      <span className="text-[9px] text-slate-400">· Window: {s.marketExecutionWindow}</span>
+                      <span className="text-[9px] text-slate-600">· Window: {s.marketExecutionWindow}</span>
                     )}
                   </div>
                 )}
 
                 {/* ── Ground-Truth Feedback: record the human commercial outcome ── */}
                 <div className="mt-4 pt-4 border-t border-slate-200/70">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">
                     Record Commercial Outcome
                   </p>
                   <p className="text-[10px] text-slate-500 mb-2.5 font-medium">
@@ -408,7 +408,7 @@ export default function OpportunityDetail() {
                 <div className="flex items-start gap-3">
                   <AlertTriangle size={15} className="mt-0.5 text-amber-500 shrink-0" strokeWidth={2.5} />
                   <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Skeptic · Differentiation</p>
+                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Skeptic · Differentiation</p>
                     <p className="text-[12px] text-slate-700 leading-relaxed">{s.councilReview.skepticNote}</p>
                   </div>
                 </div>
@@ -417,7 +417,7 @@ export default function OpportunityDetail() {
                 <div className="flex items-start gap-3">
                   <Briefcase size={15} className="mt-0.5 text-[#1A3668] shrink-0" strokeWidth={2.5} />
                   <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Buyer · Willingness to Pay</p>
+                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Buyer · Willingness to Pay</p>
                     <p className="text-[12px] text-slate-700 leading-relaxed">{s.councilReview.buyerNote}</p>
                   </div>
                 </div>
@@ -431,15 +431,15 @@ export default function OpportunityDetail() {
                   </div>
                 </div>
 
-                <p className="text-[9px] text-slate-400 italic pt-1">Advisory only — does not change the scores or commissioning decision above.</p>
+                <p className="text-[9px] text-slate-600 italic pt-1">Advisory only — does not change the scores or commissioning decision above.</p>
               </div>
             </div>
           )}
 
           {/* ── ZONE 1: RATIONALE ── */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 border-l-4 border-l-[#1A3668] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Why This Opportunity</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#1A3668]">Why This Opportunity</span>
             </div>
             <div className="px-6 py-5 space-y-5">
 
@@ -469,7 +469,7 @@ export default function OpportunityDetail() {
           {/* ── ZONE 2: REPORT STRUCTURE ── */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Report Structure</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Report Structure</span>
               {s.thematicCluster && (
                 <span className="text-[9px] font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full border border-blue-200 uppercase tracking-wide">
                   {s.thematicCluster}
@@ -481,7 +481,7 @@ export default function OpportunityDetail() {
               {/* segmentation axes */}
               {s.suggestedSegmentationAxes && s.suggestedSegmentationAxes.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Segmentation Axes</p>
+                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">Segmentation Axes</p>
                   <div className="space-y-2">
                     {s.suggestedSegmentationAxes.map((axis, i) => (
                       <div key={i} className="flex items-start gap-2">
@@ -497,14 +497,14 @@ export default function OpportunityDetail() {
               <div className="space-y-4">
                 {s.marketKeyword && (
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Target Keyword</p>
+                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Target Keyword</p>
                     <p className="text-[13px] font-bold text-[#1A3668]">{s.marketKeyword}</p>
                   </div>
                 )}
                 {/* SEO markers */}
                 {s.trendingKeywords && s.trendingKeywords.length > 0 && (
                   <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">SEO Markers</p>
+                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">SEO Markers</p>
                     <div className="flex flex-wrap gap-1.5">
                       {s.trendingKeywords.map((tag, i) => (
                         <span key={i} className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded border border-slate-200">
@@ -522,7 +522,7 @@ export default function OpportunityDetail() {
           {(s.competitorWhiteSpace || s.competitorContext || s.whiteSpaceStatus) && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Competitive White Space</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Competitive White Space</span>
                 {s.whiteSpaceLabel && s.whiteSpaceStatus !== 'UNKNOWN' && (
                   <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider ${
                     s.whiteSpaceStatus === 'CONFIRMED_GAP'
@@ -549,7 +549,7 @@ export default function OpportunityDetail() {
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Publisher Scan Results</p>
                       {typeof s.whiteSpaceScore === 'number' && (
-                        <span className="text-[9px] font-black text-slate-400">
+                        <span className="text-[9px] font-black text-slate-600">
                           Gap Score: <span className={`${s.whiteSpaceScore >= 70 ? 'text-green-600' : s.whiteSpaceScore >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>{s.whiteSpaceScore}/100</span>
                         </span>
                       )}
@@ -559,7 +559,7 @@ export default function OpportunityDetail() {
                     )}
                     {s.whiteSpaceCompetitors && s.whiteSpaceCompetitors.length > 0 ? (
                       <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Reports Found At:</p>
+                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Reports Found At:</p>
                         <div className="flex flex-wrap gap-1.5">
                           {s.whiteSpaceCompetitors.map((c, i) => (
                             <span key={i} className="text-[9px] font-bold px-2 py-0.5 bg-white border border-red-200 text-red-600 rounded">
@@ -589,7 +589,7 @@ export default function OpportunityDetail() {
                 )}
                 {s.competitorContext && (
                   <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Landscape Context</p>
+                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Landscape Context</p>
                     <p className="text-[12px] text-slate-600 leading-relaxed">{s.competitorContext}</p>
                   </div>
                 )}
@@ -603,7 +603,7 @@ export default function OpportunityDetail() {
               <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
                 <span className="text-[#69B8E1] text-[10px] font-bold uppercase tracking-widest">KAISO INTERNAL STRATEGY BRIEF · CONFIDENTIAL</span>
                 <div className="flex items-center gap-3">
-                  <button onClick={downloadBrief} className="flex items-center gap-2 hover:text-white transition-colors text-slate-400 text-[10px]">
+                  <button onClick={downloadBrief} className="flex items-center gap-2 hover:text-white transition-colors text-slate-300 text-[10px]">
                     <Download size={12} /> .txt
                   </button>
                   <button
@@ -631,7 +631,7 @@ export default function OpportunityDetail() {
 
           {/* ── CONFIDENCE SCORE ── */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Confidence Index <span className="text-slate-300 normal-case tracking-normal font-bold">· model 0–10</span></p>
+            <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-3">Confidence Index <span className="text-slate-300 normal-case tracking-normal font-bold">· model 0–10</span></p>
             <div className="flex items-end gap-3 mb-3">
               <span className={`text-4xl font-black font-mono ${cc.text}`}>{(s.confidenceScore ?? 0).toFixed(1)}</span>
               <span className="text-slate-300 text-2xl font-thin mb-1">/ 10</span>
@@ -643,11 +643,11 @@ export default function OpportunityDetail() {
             {s.trendDirectionLabel && s.trendDirection !== 'UNKNOWN' && (
               <div className="pt-3 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <TrendingUp size={10} className="text-slate-400" />
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                    <TrendingUp size={10} className="text-slate-600" />
                     Search Demand Trend
                   </span>
-                  <span className="text-[9px] text-slate-400 italic">Google Trends · 12mo</span>
+                  <span className="text-[9px] text-slate-600 italic">Google Trends · 12mo</span>
                 </div>
                 <TrendBadge label={s.trendDirectionLabel} direction={s.trendDirection} />
               </div>
@@ -656,7 +656,7 @@ export default function OpportunityDetail() {
 
           {/* ── COMMERCIAL SNAPSHOT ── */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">At a Glance</p>
+            <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">At a Glance</p>
 
             {s.estimatedCAGRRange && (
               <div className="flex items-start justify-between gap-2">
@@ -723,7 +723,7 @@ export default function OpportunityDetail() {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
               <div className="flex items-center gap-2 mb-2">
                 <ShieldCheck size={13} className="text-emerald-600" />
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Signal Credibility</span>
+                <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Signal Credibility</span>
                 <span className="ml-auto text-[11px] font-black text-emerald-700">{s.credibilityScore}%</span>
               </div>
               {s.veracityRationale && (

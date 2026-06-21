@@ -383,7 +383,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
               <div className="flex justify-between items-center relative z-10">
                 <div className="flex flex-col gap-0.5">
                   <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted">Live Signal Feed ({filteredSignalFeed.length}/{articles.length})</h2>
-                  <p className="text-[9px] text-slate-400 font-medium uppercase tracking-tight">Real-time monitoring of 40+ global industry nodes</p>
+                  <p className="text-[9px] text-slate-600 font-medium uppercase tracking-tight">Real-time monitoring of 40+ global industry nodes</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
 <span className="text-[9px] font-bold bg-slate-50 border border-slate-200 rounded px-1 py-0.5">48H WINDOW</span>
@@ -417,7 +417,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                     >
                       <RefreshCw size={14} /> Refresh Protocol
                     </button>
-                    <p className="text-[9px] text-slate-400 text-center font-bold tracking-tighter uppercase">Protocol Isolation: Recovery Path Active</p>
+                    <p className="text-[9px] text-slate-600 text-center font-bold tracking-tighter uppercase">Protocol Isolation: Recovery Path Active</p>
                   </div>
                 </div>
               )}
@@ -459,7 +459,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
               <div className="flex items-center gap-4">
                 <div className="flex flex-col gap-0.5">
                   <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted">AI-Derived Research Opportunities</h2>
-                  <p className="text-[9px] text-slate-400 font-medium uppercase tracking-tight">Synthesized intelligence mapped to strategic pillars</p>
+                  <p className="text-[9px] text-slate-600 font-medium uppercase tracking-tight">Synthesized intelligence mapped to strategic pillars</p>
                 </div>
                 <div className="group relative">
                   <div className="w-4 h-4 bg-navy text-white text-[9px] rounded-full flex items-center justify-center font-bold cursor-help border border-white/20">?</div>
@@ -474,7 +474,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                     </ul>
                   </div>
                 </div>
-                <div className="text-[9px] font-bold text-slate-400">({articles.length} signals ingested)</div>
+                <div className="text-[9px] font-bold text-slate-600">({articles.length} signals ingested)</div>
                 <div className="flex items-center gap-4 text-[10px] font-bold border-l border-slate-300 pl-4">
                   <label className="flex items-center gap-2 cursor-pointer text-muted hover:text-navy transition-colors">
                     <input type="checkbox" checked={showWatchlistOnly} onChange={e => setShowWatchlistOnly(e.target.checked)} className="rounded border-slate-300 text-brand-red focus:ring-brand-red" />
@@ -531,7 +531,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                               [INACTIVE]
                             </motion.span>
                           </h3>
-                          <p className="text-[11px] uppercase font-bold text-slate-400 leading-relaxed tracking-[0.15em] opacity-80 mb-6">
+                          <p className="text-[11px] uppercase font-bold text-slate-600 leading-relaxed tracking-[0.15em] opacity-80 mb-6">
                             High-Fidelity Synthesis Engine in Standby
                           </p>
                           
@@ -591,7 +591,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                     <Layers size={40} className="opacity-10 mb-4" />
                     <div className="space-y-2">
                       <p className="text-xs font-bold uppercase tracking-wider">No Strategic Opportunities Identified</p>
-                      <p className="text-[10px] uppercase font-medium text-slate-400">
+                      <p className="text-[10px] uppercase font-medium text-slate-600">
                         {suggestions.length === 0 
                           ? "The engine is currently parsing global nodes..." 
                           : `Filter Active: No signals met the 7.0+ threshold within the ${timeWindow}H window.`}
@@ -629,12 +629,12 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                           <div className="flex items-center gap-2 mb-1">
                             <div className="text-[9px] font-bold uppercase tracking-widest group-hover:text-light-blue text-muted transition-colors">PILLAR: {s.strategicPillar}</div>
                             {s.credibilityScore >= 90 && (
-                              <div className="flex items-center gap-1 text-[8px] font-black text-green-600 bg-green-50 px-1 rounded-sm border border-green-200 group-hover:bg-white/10 group-hover:text-green-300 group-hover:border-green-800">
+                              <div className="flex items-center gap-1 text-[8px] font-black text-green-600 bg-green-50 px-1.5 py-0.5 rounded-md border border-green-200 group-hover:bg-white/10 group-hover:text-green-300 group-hover:border-green-800">
                                 <ShieldCheck size={10} /> HIGH_VERACITY
                               </div>
                             )}
                             {s.nexusArticlesCount > 1 && (
-                                <div className="flex items-center gap-1 text-[8px] font-black text-blue-600 bg-blue-50 px-1 rounded-sm border border-blue-200 group-hover:bg-white/10 group-hover:text-blue-300 group-hover:border-blue-800">
+                                <div className="flex items-center gap-1 text-[8px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-200 group-hover:bg-white/10 group-hover:text-blue-300 group-hover:border-blue-800">
                                    <Layers size={10} /> NEXUS (+{s.nexusArticlesCount})
                                 </div>
                             )}
@@ -658,7 +658,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                                 )}
                               </span>
                               {(s as any).actionReason && (
-                                <span className="text-[9px] text-slate-400 group-hover:text-white/50 line-clamp-1 italic flex-1">
+                                <span className="text-[9px] text-slate-600 group-hover:text-white/50 line-clamp-1 italic flex-1">
                                   {(s as any).actionReason}
                                 </span>
                               )}
@@ -667,16 +667,16 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                           <p className="text-[11px] opacity-70 line-clamp-1 italic group-hover:text-slate-100">Anchor: {s.sourceArticleTitle}</p>
                           <div className="flex items-center gap-3 mt-1">
                             <div className="text-[9px] font-extrabold text-blue-600 group-hover:text-blue-200 uppercase">THEME: {s.thematicCluster}</div>
-                          <div className={`text-[8px] font-black px-1 rounded-sm uppercase tracking-tighter ${s.sentimentPolarity === 'Bullish' ? 'text-green-600 bg-green-50' : s.sentimentPolarity === 'Bearish' ? 'text-brand-red bg-red-50' : 'text-slate-500 bg-slate-100'}`}>
+                          <div className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight ${s.sentimentPolarity === 'Bullish' ? 'text-green-600 bg-green-50' : s.sentimentPolarity === 'Bearish' ? 'text-brand-red bg-red-50' : 'text-slate-500 bg-slate-100'}`}>
                             SENTIMENT: {s.sentimentPolarity}
                           </div>
                           {s.executionRisk === 'High' && (
-                            <div className="flex items-center gap-1 text-[8px] font-black text-brand-red bg-red-50 px-1 rounded-sm border border-red-100 group-hover:bg-white group-hover:border-red-800 transition-colors">
+                            <div className="flex items-center gap-1 text-[8px] font-black text-brand-red bg-red-50 px-1.5 py-0.5 rounded-md border border-red-100 group-hover:bg-white group-hover:border-red-800 transition-colors">
                               <Zap size={10} fill="currentColor" /> HI_RISK
                             </div>
                           )}
                           {s.regulatoryHurdle === 'Critical' && (
-                            <div className="flex items-center gap-1 text-[8px] font-black text-orange-600 bg-orange-50 px-1 rounded-sm border border-orange-100 group-hover:bg-white group-hover:border-orange-800 transition-colors">
+                            <div className="flex items-center gap-1 text-[8px] font-black text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-md border border-orange-100 group-hover:bg-white group-hover:border-orange-800 transition-colors">
                               <Gavel size={10} /> REG_INTEL
                             </div>
                           )}
@@ -687,12 +687,12 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                             {s.vertical.toUpperCase()}
                           </span>
                           {s.signalType && (
-                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tight border bg-slate-50 text-slate-500 border-slate-200 group-hover:bg-white/10 group-hover:text-white/70 group-hover:border-white/20 transition-all">
+                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border bg-slate-50 text-slate-500 border-slate-200 group-hover:bg-white/10 group-hover:text-white/70 group-hover:border-white/20 transition-all">
                               {s.signalType}
                             </span>
                           )}
                           {s.trendDirection && s.trendDirection !== 'UNKNOWN' && s.trendDirectionLabel && (
-                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tight border flex items-center gap-1 transition-all ${
+                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border flex items-center gap-1 transition-all ${
                               s.trendDirection === 'RISING'
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 group-hover:bg-emerald-900/30 group-hover:text-emerald-300 group-hover:border-emerald-800'
                                 : s.trendDirection === 'DECLINING'
@@ -704,7 +704,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                             </span>
                           )}
                           {s.whiteSpaceStatus && s.whiteSpaceStatus !== 'UNKNOWN' && s.whiteSpaceLabel && (
-                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tight border flex items-center gap-1 transition-all ${
+                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border flex items-center gap-1 transition-all ${
                               s.whiteSpaceStatus === 'CONFIRMED_GAP'
                                 ? 'bg-green-50 text-green-700 border-green-200 group-hover:bg-green-900/30 group-hover:text-green-300 group-hover:border-green-800'
                                 : s.whiteSpaceStatus === 'PARTIAL_COVERAGE'
