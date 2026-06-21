@@ -878,7 +878,7 @@ ${cleanedEdgar.length > 0 ? JSON.stringify(cleanedEdgar, null, 2) : "(No EDGAR s
 PRIORITY 2 DATA — RSS & NEWSAPI ARTICLES (Use to corroborate EDGAR signals or identify additional opportunities.)
 ${JSON.stringify(cleanedArticles, null, 2)}
 
-OUTPUT SANITY CHECK — GEOGRAPHIC COHERENCE: Before finalizing, verify that your geographic modifier does not contradict your report geography. If report geography is a specific country, the modifier MUST be that country, not "Global." If you detect a contradiction, you are required to resolve it before output.
+OUTPUT SANITY CHECK — TITLE COHERENCE: Before finalizing each title, run two checks and fix any failure before output. (1) GEOGRAPHY: your geographic modifier must not contradict your report geography — if report geography is a specific country, the modifier MUST be that country, not "Global." (2) SINGLE MARKET: the Core Subject must name ONE market. If it joins two DISTINCT markets with "and", "&", or "/" (e.g. "AI Chip Investment and Manufacturing", "Pharmaceutical Quality Control and Generic Drug"), keep only the single market with the strongest buyer demand and drop the other. Exception: an "and" describing ONE market's natural scope (e.g. "Engine and Component MRO") is fine — split only genuinely separate markets. If you detect either failure, resolve it before output.
 
 IMPORTANT: Return a JSON array of 8 to 10 objects, strongest first. Prioritise quality and novelty over hitting a specific count — never pad with weak or recycled opportunities, and never return fewer than 8. No explanation text. No markdown formatting. Pure valid JSON array only.`;
 
