@@ -768,7 +768,7 @@ SIGNAL PRIORITY HIERARCHY — FOLLOW THIS ORDER STRICTLY:
 
 PRIORITY 1 — STRUCTURED INSTITUTIONAL SIGNALS (Primary source. Always check first.)
 Scan all structured signals below. They come from DIFFERENT official sources — treat each by its \`company\`/\`filingType\`, not as one homogeneous kind:
-  • SEC EDGAR (10-K/10-Q/8-K): official U.S. disclosures where executives legally describe market conditions, demand, risk, and investment. A single EDGAR filing is sufficient evidence — confidenceScore 6 minimum.
+  • SEC EDGAR (10-K/10-Q/8-K): official U.S. disclosures where executives legally describe market conditions, demand, risk, and investment. A single EDGAR filing is sufficient evidence — confidenceScore 6-7 (use 7 when the filing is directly on point for the market).
   • Government procurement notices (EU TED, UK FTS / Contracts Finder): live buy-side DEMAND — a government is spending now. Strong for buyer willingness, but a single notice is narrow; corroborate before treating it as a broad market (confidenceScore 5 unless corroborated).
   • Patent / IP filings (EU EPO): LEADING R&D indicators, often 12–18 months ahead of commercialization. A single patent rarely defines a sellable market — require a second corroborating signal before surfacing (confidenceScore max 5 alone).
   • Federal Register notices (US): regulatory TRIGGERS — put the rule in \`trigger\` and frame the report around the market the rule affects.
@@ -778,7 +778,7 @@ PRIORITY 2 — RSS + NEWSAPI ARTICLES (Secondary source. Use to corroborate and 
 After identifying opportunities from EDGAR, scan RSS/NewsAPI articles to find additional corroboration or new signals not covered by EDGAR. An RSS-only opportunity requires at least 2 articles from different sources to qualify as strong.
 
 CONVERGENCE BONUS — HIGHEST CONFIDENCE:
-When an EDGAR filing AND one or more RSS articles point to the same market theme, that is maximum-confidence convergence. Elevate the confidenceScore to 8+ for such opportunities and rank them above single-source signals.
+When TWO OR MORE INDEPENDENT sources point at the SAME market, that is high-confidence convergence — elevate confidenceScore to 8+ and rank above single-source signals. This applies across ALL streams, not just EDGAR+RSS: e.g. EDGAR + RSS, EDGAR + EPO patent, US Federal Register + EU TED procurement, EPO + tier-1 trade press. The sources must independently concern the SAME market (not merely the same broad sector); a single source — however authoritative — never reaches 8 on its own.
 
 RANKING RULE (evidence tie-breaker only): EDGAR + RSS convergence (strongest evidence) > EDGAR-only > multi-RSS > single-RSS. IMPORTANT: commercial viability is the PRIMARY ranking axis — source tier is only a tie-breaker between opportunities of comparable commercial value. Never rank a commercially weak opportunity above a commercially strong one just because its source tier is higher.
 
@@ -829,7 +829,7 @@ FOR EACH OPPORTUNITY RETURN EXACTLY THESE FIELDS:
 - trigger: The single most important event, filing, notice, or signal that makes this "the right time" for this report
 - trendingKeywords: Array of 3-5 related keywords/phrases a buyer would search for
 - salesPotential: "High" (clear enterprise demand, strong trigger), "Medium" (good signal, developing market), or "Emerging" (early stage, speculative)
-- confidenceScore: Integer 1-10 based purely on evidence quality and volume in these articles (do NOT default to 7)
+- confidenceScore: Integer 1-10 based on evidence quality, source authority, and corroboration across the provided signals. Use the FULL 1-10 range per the SCORING RULES below — do NOT bunch at 5-6: reserve 8-10 for genuine multi-source convergence, assign 7 for a single strong official/institutional signal or two corroborating mid-tier sources, and 1-4 for thin or speculative single signals.
 - sentimentPolarity: "Bullish" (positive momentum), "Bearish" (contraction/risk), or "Neutral"
 - marketExecutionWindow: "Immediate (0-3M)" (publish now, hot topic), "Strategic (6-12M)" (building momentum), or "Long-term (1Y+)" (early signal)
 - primaryStakeholder: The single most likely report buyer persona (e.g. "EV Battery Procurement Heads at Tier-1 Automotive OEMs")
@@ -851,10 +851,12 @@ FOR EACH OPPORTUNITY RETURN EXACTLY THESE FIELDS:
 - signalOriginGeography: String. Where does this signal originate? Identify the primary country or region driving this market event. Use concise names: "United States", "China", "India", "European Union", "Southeast Asia", "Global", etc.
 - recommendedReportGeography: String. Based on signal origin and market scope, recommend the ideal Kaiso report SKU geography. Must be exactly one of: "Global", "Regional: Asia Pacific", "Regional: North America", "Regional: Europe", "Regional: Middle East & Africa", "Regional: Latin America", "Country: [Name]". Choose "Global" only if signals span 3+ regions. Choose Country SKU only if the signal is clearly country-specific.
 
-SCORING RULES:
-- confidenceScore 8-10: 3+ articles from tier-1 sources (Reuters, FT, Bloomberg, WSJ) all pointing to same trend
-- confidenceScore 5-7: 1-2 strong articles or multiple mid-tier sources
-- confidenceScore 1-4: Single weak signal or speculative topic
+SCORING RULES (confidenceScore — use the full 1-10 range; high confidence is earned by source AUTHORITY and CONVERGENCE, never by volume of low-tier articles alone):
+- 9-10: Strong multi-source convergence — 3+ independent sources agree on the SAME market, OR an official institutional filing (SEC EDGAR 10-K/10-Q/8-K, or US Federal Register) corroborated by 2+ further independent sources.
+- 8: Cross-source convergence — ANY two INDEPENDENT institutional/tier-1 sources point at the SAME market (e.g. EDGAR + RSS, EDGAR + EPO patent, Federal Register + EU TED, EPO + tier-1 trade press). The two sources must concern the same market, not merely the same broad sector.
+- 7: One strong, authoritative single signal directly on point (a single SEC EDGAR or US Federal Register filing), OR two corroborating mid-tier sources.
+- 5-6: A single mid-tier article, a single government procurement notice (5 unless corroborated), or a single patent (max 5 alone); use 6 only when the lone signal is unusually strong for its tier.
+- 1-4: Single weak, tangential, or speculative signal with no corroboration.
 - salesPotential "High": Enterprise companies actively spending/investing in this area RIGHT NOW
 - salesPotential "Medium": Clear future demand but procurement cycle not yet triggered
 - salesPotential "Emerging": Interesting signal but unclear commercial timeline
