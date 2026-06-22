@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import DocumentationView from './components/DocumentationView';
+import HelpPanel from './components/HelpPanel';
 import { 
   ShieldCheck, 
   RefreshCw, 
@@ -27,7 +28,6 @@ import { IntelligenceGraphAssembly } from './components/IntelligenceGraphAssembl
 import { StrategicTelemetryFeed } from './components/StrategicTelemetryFeed';
 import { IntelligenceProfile } from './components/IntelligenceProfile';
 import { LoginScreen } from './components/LoginScreen';
-import { ExecutiveIntelligenceView } from './components/ExecutiveIntelligenceView';
 import { RSSArticle, ReportSuggestion, Vertical, VERTICALS } from './types';
 import { fetchAllFeeds } from './services/rssService';
 import { analyzeNews } from './services/geminiService';
@@ -75,8 +75,8 @@ export default function App() {
   const [hasStarted, setHasStarted] = useState(false);
 
   const [timeWindow, setTimeWindow] = useState<number>(48);
-  const [viewMode, setViewMode] = useState<'LIST' | 'EXECUTIVE'>('LIST');
   const [showDocumentation, setShowDocumentation] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return sessionStorage.getItem('kaiso_auth_token') !== null;
   });
@@ -325,6 +325,15 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
               Read About This App
             </button>
             <button 
+              onClick={() => setShowHelp(true)}
+              title="Help & Knowledge Base"
+              aria-label="Open help and search"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded bg-bg border border-slate-300 text-[10px] font-extrabold text-navy hover:bg-slate-50 shadow-sm transition-all uppercase tracking-tighter"
+            >
+              <Search size={14} className="text-brand-red" />
+              Help
+            </button>
+            <button 
               onClick={loadSignals}
               disabled={loading || analyzing}
               className={`flex items-center gap-2 px-6 py-2 rounded text-xs font-bold shadow-sm transition-all disabled:opacity-50 ${!hasStarted ? 'bg-brand-red text-white border-transparent hover:bg-brand-red/90 animate-shimmer bg-[length:200%_100%]' : 'bg-white border border-slate-300 text-navy hover:bg-slate-50'}`}
@@ -485,20 +494,6 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                     GEO FOCUS
                   </label>
                 </div>
-                <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded p-0.5 ml-4">
-                  <button 
-                    onClick={() => setViewMode('LIST')}
-                    className={`px-3 py-1 text-[9px] font-bold rounded ${viewMode === 'LIST' ? 'bg-white text-navy shadow-sm' : 'text-muted hover:text-navy'}`}
-                  >
-                    LIST
-                  </button>
-                  <button 
-                    onClick={() => setViewMode('EXECUTIVE')}
-                    className={`px-3 py-1 text-[9px] font-bold rounded ${viewMode === 'EXECUTIVE' ? 'bg-brand-red text-white shadow-sm' : 'text-muted hover:text-navy'} flex items-center gap-1`}
-                  >
-                    <Zap size={10} /> EXECUTIVE
-                  </button>
-                </div>
               </div>
               <div className="text-[9px] font-bold text-muted uppercase tracking-wider">{filteredSuggestions.length} IDENTIFIED</div>
             </div>
@@ -600,7 +595,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                   </div>
                 )}
 
-                {!analyzing && viewMode === 'LIST' && (
+                {!analyzing && (
                   <div className="divide-y divide-slate-100">
                     {filteredSuggestions.map((s, idx) => (
                       <motion.div 
@@ -729,11 +724,6 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                     ))}
                   </div>
                 )}                          
-                {viewMode === 'EXECUTIVE' && pipelineData && (
-                  <div className="flex-1 overflow-y-auto">
-                    <ExecutiveIntelligenceView data={pipelineData} />
-                  </div>
-                )}
               </div>
           </section>
         </div>
@@ -753,6 +743,9 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
       <AnimatePresence mode="wait">
        {showDocumentation && (
            <DocumentationView key="documentation-view" onClose={() => setShowDocumentation(false)} />
+        )}
+       {showHelp && (
+           <HelpPanel key="help-panel" onClose={() => setShowHelp(false)} />
         )}
       </AnimatePresence>
       <style>{`

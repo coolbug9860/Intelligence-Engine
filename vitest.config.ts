@@ -6,6 +6,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    // Server/service tests run in node (default). Component tests opt into a
+    // jsdom environment per-file via a `// @vitest-environment jsdom` docblock.
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },
 });
