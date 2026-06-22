@@ -202,7 +202,12 @@ return () => {};
       const matchWatchlist = !showWatchlistOnly || watchlist.includes(s.id);
       const matchGeo = !showGeoOnly || s.recommendedReportGeography?.startsWith('Country:');
       return matchTime && matchVertical && matchSearch && matchWatchlist && matchGeo;
-    });
+    })
+    // Rank highest-first by the commercial ranking metric (opportunityScore,
+    // 0–100). This is the same score the pipeline ranks by; sorting here makes
+    // the visible order match it (the row previously showed confidenceScore,
+    // which is a different 0–10 metric, so the list looked unsorted).
+    .sort((a, b) => (Number(b.opportunityScore ?? 0)) - (Number(a.opportunityScore ?? 0)));
   }, [suggestions, activeVerticals, searchQuery, showWatchlistOnly, watchlist, showGeoOnly, timeWindow]);
 
   const toggleVertical = (v: string) => {
@@ -608,15 +613,16 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                       >
                         <div className="text-center">
                           <span className={`text-sm font-extrabold transition-colors ${watchlist.includes(s.id) ? 'text-brand-red' : 'group-hover:text-white text-brand-red'}`}>
-                            {s.confidenceScore.toFixed(1)}
+                            {Math.round(Number(s.opportunityScore ?? 0))}
                           </span>
+                          <div className="text-[7px] font-black uppercase tracking-widest text-muted group-hover:text-white/50 mt-0.5">Opp · 0–100</div>
                           <div className="mt-2 group-hover:hidden">
-                            <IntelligenceProfile profile={s.intelligenceProfile} fallbackScore={s.confidenceScore} isCompact />
+                            <IntelligenceProfile profile={s.intelligenceProfile} fallbackScore={s.confidenceScore ?? 0} isCompact />
                           </div>
                           <div className="h-1 w-full bg-slate-100 rounded-full mt-1 overflow-hidden group-hover:bg-white/20 hidden group-hover:block">
                             <div 
-                              className={`h-full ${getConfidenceColor(s.confidenceScore, s.salesPotential)}`}
-                              style={{ width: `${s.confidenceScore * 10}%` }}
+                              className={`h-full ${getConfidenceColor(Number(s.opportunityScore ?? 0), s.salesPotential)}`}
+                              style={{ width: `${Math.min(100, Number(s.opportunityScore ?? 0))}%` }}
                             ></div>
                           </div>
                         </div>
