@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import fc from 'fast-check';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -181,5 +182,264 @@ describe('fetchSamNoticeById — daily quota gate (Req 5.7)', () => {
     await fetchSamNoticeById('A'); // fails but is still counted
     const persisted = JSON.parse(fs.readFileSync(quotaPath, 'utf-8'));
     expect(persisted.count).toBe(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARTIAL-PAYLOAD PARSER BRANCHES — previously robust-by-construction but untested
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Stub a single OK response wrapping `body`, returning the fetch spy. */
+function stubOk(body: unknown) {
+  const spy = vi.fn(() => Promise.resolve(ok(body)));
+  vi.stubGlobal('fetch', spy);
+  return spy;
+}
+
+describe('fetchSamNoticeById — partial payload parser branches', () => {
+  it('returns null when the payload has no title', async () => {
+    stubOk({ opportunitiesData: [{ type: 'Solicitation', postedDate: '2026-06-18' }] });
+    await expect(fetchSamNoticeById('NID-NOTITLE')).resolves.toBeNull();
+  });
+
+  it('returns null when the title is an empty string', async () => {
+    stubOk({ opportunitiesData: [{ title: '', type: 'Solicitation', postedDate: '2026-06-18' }] });
+    await expect(fetchSamNoticeById('NID-EMPTYTITLE')).resolves.toBeNull();
+  });
+
+  it('falls back to baseType when type is absent', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', baseType: 'Presolicitation', postedDate: '2026-06-18', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.noticeType).toBe('Presolicitation');
+    expect(s?.title).toBe('X — Presolicitation');
+  });
+
+  it('defaults noticeType to "Notice" when both type and baseType are absent', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', postedDate: '2026-06-18', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.noticeType).toBe('Notice');
+  });
+
+  it('uses organizationName when fullParentPathName is absent', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', organizationName: 'NASA', postedDate: '2026-06-18', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.agency).toBe('NASA');
+  });
+
+  it('uses department when only department is present', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', department: 'DOE', postedDate: '2026-06-18', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.agency).toBe('DOE');
+  });
+
+  it('defaults agency to "Unknown Agency" when no agency field is present', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', postedDate: '2026-06-18', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.agency).toBe('Unknown Agency');
+  });
+
+  it('falls back to publishDate when postedDate is absent', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', publishDate: '2026-01-01', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.postedDate).toBe('2026-01-01');
+  });
+
+  it('falls back to publishDate when postedDate is an empty string (no `??` stickiness)', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', postedDate: '', publishDate: '2026-02-02', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.postedDate).toBe('2026-02-02');
+  });
+
+  it('uses the title as the excerpt when the description looks like a URL', async () => {
+    stubOk({ opportunitiesData: [{ title: 'Radar', type: 'Solicitation', postedDate: '2026-06-18', description: 'https://example.gov/notice' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.excerpt).toBe('Radar');
+  });
+
+  it('uses the title as the excerpt when the description is a non-string', async () => {
+    stubOk({ opportunitiesData: [{ title: 'Radar', type: 'Solicitation', postedDate: '2026-06-18', description: 12345 }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.excerpt).toBe('Radar');
+  });
+
+  it('strips HTML tags and collapses whitespace in the description excerpt', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', postedDate: '2026-06-18', description: '<p>Hello   <b>World</b></p>' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.excerpt).toBe('Hello World');
+  });
+
+  it('constructs a sam.gov URL when uiLink is absent (id encoded)', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', postedDate: '2026-06-18', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID 9/9');
+    expect(s?.url).toBe(`https://sam.gov/opp/${encodeURIComponent('NID 9/9')}/view`);
+  });
+});
+
+describe('fetchSamNoticeById — malformed (non-string) field coercion (regression)', () => {
+  it('defaults noticeType to "Notice" when type is a non-string (e.g. 0)', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 0, postedDate: '2026-06-18', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.noticeType).toBe('Notice');
+    expect(typeof s?.noticeType).toBe('string');
+  });
+
+  it('ignores a non-string agency value and defaults to "Unknown Agency"', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', fullParentPathName: 42, postedDate: '2026-06-18', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.agency).toBe('Unknown Agency');
+  });
+
+  it('ignores a non-string uiLink and falls back to a constructed URL', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', uiLink: 7, postedDate: '2026-06-18', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID-7');
+    expect(s?.url).toBe(`https://sam.gov/opp/${encodeURIComponent('NID-7')}/view`);
+  });
+
+  it('rejects a whitespace-only title (fail-fast identity guard)', async () => {
+    stubOk({ opportunitiesData: [{ title: '   ', type: 'T', postedDate: '2026-06-18', description: 'd' }] });
+    await expect(fetchSamNoticeById('NID')).resolves.toBeNull();
+  });
+
+  it('rejects a non-string title', async () => {
+    stubOk({ opportunitiesData: [{ title: 123, type: 'T', postedDate: '2026-06-18', description: 'd' }] });
+    await expect(fetchSamNoticeById('NID')).resolves.toBeNull();
+  });
+});
+
+describe('fetchSamNoticeById — strict date requirement (fail-fast, NEW rule)', () => {
+  it('returns null when both postedDate and publishDate are absent', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', description: 'd' }] });
+    await expect(fetchSamNoticeById('NID-NODATE')).resolves.toBeNull();
+  });
+
+  it.each(['', '   ', '\t\n', '\u00a0'])('returns null when both dates are empty/whitespace (%p)', async (blank) => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', postedDate: blank, publishDate: blank, description: 'd' }] });
+    await expect(fetchSamNoticeById('NID-BLANKDATE')).resolves.toBeNull();
+  });
+
+  it('still emits a signal when at least one date field is usable', async () => {
+    stubOk({ opportunitiesData: [{ title: 'X', type: 'T', postedDate: '2026-03-03', description: 'd' }] });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.postedDate).toBe('2026-03-03');
+  });
+});
+
+describe('fetchSamNoticeById — response envelope handling', () => {
+  it('parses opportunitiesData given as a bare object (not an array)', async () => {
+    stubOk({ opportunitiesData: opportunity() });
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.title).toBe('Advanced Radar Systems — Solicitation');
+  });
+
+  it('parses a raw opportunity object at the top level (no envelope)', async () => {
+    stubOk(opportunity());
+    const s = await fetchSamNoticeById('NID');
+    expect(s?.title).toBe('Advanced Radar Systems — Solicitation');
+  });
+
+  it('returns null when opportunitiesData is an empty array', async () => {
+    stubOk({ opportunitiesData: [] });
+    await expect(fetchSamNoticeById('NID')).resolves.toBeNull();
+  });
+
+  it('returns null when the response body is null', async () => {
+    stubOk(null);
+    await expect(fetchSamNoticeById('NID')).resolves.toBeNull();
+  });
+
+  it('returns null without throwing when response.json() throws (malformed JSON body)', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => { throw new SyntaxError('Unexpected token < in JSON'); },
+    } as unknown as Response)));
+    await expect(fetchSamNoticeById('NID')).resolves.toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROPERTY-BASED — fuzz garbage payloads: never throw; null or a VALID SamSignal
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Assert a returned SamSignal is completely valid (every field well-formed). */
+function assertValidSamSignal(s: unknown, noticeId: string): void {
+  expect(s).not.toBeNull();
+  const sig = s as Record<string, unknown>;
+  expect(Object.keys(sig).sort()).toEqual(
+    ['agency', 'excerpt', 'matchedKeyword', 'noticeType', 'postedDate', 'title', 'url', 'vertical'].sort()
+  );
+  for (const v of Object.values(sig)) expect(typeof v).toBe('string');
+  // Non-empty guarantees from the parser's defaults / required fields.
+  expect((sig.title as string).length).toBeGreaterThan(0);
+  expect((sig.noticeType as string).length).toBeGreaterThan(0);
+  expect((sig.agency as string).length).toBeGreaterThan(0);
+  expect((sig.url as string).length).toBeGreaterThan(0);
+  expect(sig.vertical).toBe('General');
+  expect(sig.matchedKeyword).toBe(noticeId);
+  // The NEW strict rule: a surfaced signal always carries a usable date.
+  expect((sig.postedDate as string).trim().length).toBeGreaterThan(0);
+  // Excerpt is bounded (may legitimately be empty after tag/whitespace cleaning).
+  expect((sig.excerpt as string).length).toBeLessThanOrEqual(700);
+}
+
+/** Arbitrary opportunity with randomly-typed, randomly-present keys. */
+const arbOpportunity = fc.record(
+  {
+    title: fc.oneof(fc.string(), fc.integer(), fc.boolean(), fc.constant(null)),
+    type: fc.oneof(fc.string(), fc.integer(), fc.constant(null)),
+    baseType: fc.oneof(fc.string(), fc.constant(null)),
+    fullParentPathName: fc.oneof(fc.string(), fc.constant(null)),
+    organizationName: fc.oneof(fc.string(), fc.constant(null)),
+    department: fc.oneof(fc.string(), fc.constant(null)),
+    postedDate: fc.oneof(fc.string(), fc.integer(), fc.constant(null)),
+    publishDate: fc.oneof(fc.string(), fc.integer(), fc.constant(null)),
+    description: fc.oneof(fc.string(), fc.integer(), fc.object(), fc.constant(null)),
+    uiLink: fc.oneof(fc.string(), fc.constant(null)),
+  },
+  { requiredKeys: [] }
+);
+
+/** Arbitrary response body: envelope variants plus total garbage. */
+const arbBody = fc.oneof(
+  arbOpportunity.map((op) => ({ opportunitiesData: [op] })),
+  arbOpportunity.map((op) => ({ opportunitiesData: op })),
+  arbOpportunity,
+  fc.constant({ opportunitiesData: [] }),
+  fc.constant(null),
+  fc.anything(),
+);
+
+describe('Property: fetchSamNoticeById never throws and yields null or a valid SamSignal', () => {
+  it('holds for arbitrary/garbage payloads across many runs', async () => {
+    // Large budget so the persistent daily quota never interferes with fuzzing.
+    process.env.SAMGOV_DAILY_LIMIT = String(Number.MAX_SAFE_INTEGER);
+
+    await fc.assert(
+      fc.asyncProperty(
+        arbBody,
+        fc.string().map((s) => `id-${s}`), // guaranteed non-empty → reaches the parser
+        async (body, noticeId) => {
+          vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(ok(body))));
+          const result = await fetchSamNoticeById(noticeId);
+          if (result !== null) assertValidSamSignal(result, noticeId);
+        }
+      ),
+      { numRuns: 500 }
+    );
+  });
+
+  it('returns null (never throws) when response.json rejects, for any non-empty id', async () => {
+    process.env.SAMGOV_DAILY_LIMIT = String(Number.MAX_SAFE_INTEGER);
+    await fc.assert(
+      fc.asyncProperty(fc.string().map((s) => `id-${s}`), async (noticeId) => {
+        vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => { throw new Error('malformed'); },
+        } as unknown as Response)));
+        await expect(fetchSamNoticeById(noticeId)).resolves.toBeNull();
+      }),
+      { numRuns: 100 }
+    );
   });
 });

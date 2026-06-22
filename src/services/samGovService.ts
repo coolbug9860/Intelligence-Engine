@@ -108,6 +108,14 @@ function cleanText(raw: string): string {
     .slice(0, MAX_EXCERPT_LENGTH);
 }
 
+/** First argument that is a present, non-empty (after trim) string; else ''. */
+function firstNonEmptyString(...values: unknown[]): string {
+  for (const v of values) {
+    if (typeof v === 'string' && v.trim().length > 0) return v;
+  }
+  return '';
+}
+
 async function fetchWithTimeout(url: string): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -121,22 +129,36 @@ async function fetchWithTimeout(url: string): Promise<Response> {
   }
 }
 
-/** Parse a single SAM.gov opportunity into a SamSignal; null if essentials are missing. */
+/** Parse a single SAM.gov opportunity into a SamSignal; null if essentials (title or a usable date) are missing. */
 function parseSamNotice(op: any, noticeId: string): SamSignal | null {
   try {
-    const title: string = op?.title ?? '';
+    // Title is the notice's identity — require a real, non-empty string.
+    // (firstNonEmptyString rejects non-strings and whitespace-only values, so a
+    // numeric/boolean/blank title fails fast rather than producing a poison signal.)
+    const title = firstNonEmptyString(op?.title);
     if (!title) return null;
 
-    const noticeType: string = op?.type ?? op?.baseType ?? 'Notice';
-    const agency: string =
-      op?.fullParentPathName ?? op?.organizationName ?? op?.department ?? 'Unknown Agency';
-    const postedDate: string = op?.postedDate ?? op?.publishDate ?? '';
+    // Fallback chains use firstNonEmptyString (not `??`) so a non-string value
+    // like `type: 0` can never leak a non-string field into the SamSignal.
+    const noticeType = firstNonEmptyString(op?.type, op?.baseType) || 'Notice';
+    const agency =
+      firstNonEmptyString(op?.fullParentPathName, op?.organizationName, op?.department) ||
+      'Unknown Agency';
 
-    const rawDescription: string = typeof op?.description === 'string' ? op.description : '';
+    // A signal without a usable date is poison for chronological tracking and
+    // would fail strict downstream adapter validation anyway — fail fast.
+    // (Uses firstNonEmptyString, not `??`, so an empty `postedDate` correctly
+    // falls through to `publishDate` rather than sticking as ''.)
+    const postedDate = firstNonEmptyString(op?.postedDate, op?.publishDate);
+    if (!postedDate) return null;
+
+    const rawDescription = firstNonEmptyString(op?.description);
     const looksLikeUrl = /^https?:\/\//i.test(rawDescription.trim());
     const rawExcerpt = looksLikeUrl || !rawDescription ? title : rawDescription;
 
-    const url: string = op?.uiLink ?? `https://sam.gov/opp/${encodeURIComponent(noticeId)}/view`;
+    const url =
+      firstNonEmptyString(op?.uiLink) ||
+      `https://sam.gov/opp/${encodeURIComponent(noticeId)}/view`;
 
     return {
       title: `${title} — ${noticeType}`,
