@@ -10,7 +10,11 @@ import type { RSSArticle, EDGARSignal } from "./src/types";
 import { runIntelligencePipeline } from "./src/services/intelligenceOrchestrator";
 import {
   generateFullBrief,
+  askKnowledgeBase,
 } from "./src/services/geminiService";
+import { KNOWLEDGE_BASE } from "./src/data/helpKnowledgeBase";
+import type { HelpEntry, HelpSource, HelpExplainRequest } from "./src/services/helpTypes";
+import { resolveContextEntries, toHelpSources } from "./src/services/helpGrounding";
 import { fetchEdgarSignals } from "./src/services/edgarService";
 import { fetchSamNoticeById } from "./src/services/samGovService";
 import { fetchTedNotices } from "./src/services/tedService";
@@ -33,7 +37,7 @@ import {
 
 dotenv.config();
 
-const app = express();
+export const app = express();
 
 // Tell Express to trust Render's reverse proxy — fixes express-rate-limit
 // ERR_ERL_UNEXPECTED_X_FORWARDED_FOR warning on every request
@@ -971,6 +975,51 @@ app.post("/api/brief/export-docx", async (req, res) => {
   }
 });
 
+// ════════════════════════════════════════════════════════════════════════════════
+// /api/help/explain — Grounded LLM fallback for the in-app Help / Search feature.
+// Sits below the auth middleware (requires Bearer token) and applies the existing
+// aiLimiter (10/min) directly, since aiLimiter is only auto-mounted on
+// /api/intelligence. Resolves contextIds against the curated KNOWLEDGE_BASE
+// (ignoring unknown ids) and answers ONLY from those entries via Gemini.
+// ════════════════════════════════════════════════════════════════════════════════
+const MAX_HELP_QUERY_LENGTH = 500; // server-side cap on untrusted query input
+
+app.post("/api/help/explain", aiLimiter, async (req, res) => {
+  const { query, contextIds } = (req.body || {}) as Partial<HelpExplainRequest>;
+
+  // Reject empty / whitespace-only queries.
+  if (typeof query !== "string" || query.trim().length === 0) {
+    return res.status(400).json({ error: "query required" });
+  }
+
+  // Enforce a server-side maximum query length (untrusted input).
+  if (query.length > MAX_HELP_QUERY_LENGTH) {
+    return res
+      .status(400)
+      .json({ error: `query exceeds maximum length of ${MAX_HELP_QUERY_LENGTH} characters.` });
+  }
+
+  // Resolve contextIds against the KB, ignoring unknown ids and duplicates.
+  const ids = Array.isArray(contextIds) ? contextIds : [];
+  const resolved: HelpEntry[] = resolveContextEntries(ids, KNOWLEDGE_BASE);
+
+  // If none of the supplied ids resolve, the client should fall back to local.
+  if (resolved.length === 0) {
+    return res.status(400).json({ error: "No valid context entries resolved." });
+  }
+
+  try {
+    const answer = await askKnowledgeBase(query, resolved);
+    const sources: HelpSource[] = toHelpSources(resolved);
+    return res.json({ answer, sources, mode: "llm" });
+  } catch (err) {
+    console.error("[HelpExplain] Gemini failure:", err);
+    return res
+      .status(502)
+      .json({ error: "AI explanation unavailable. Showing local matches." });
+  }
+});
+
 // ---------- STATIC FRONTEND ----------
 
 app.use(express.static("dist"));
@@ -982,13 +1031,16 @@ app.get("*", (_, res) => {
 });
 
 // ---------- START SERVER ----------
+// Skipped under test (NODE_ENV=test) so the route module can be imported without
+// binding a port; tests mount `app` on an ephemeral port themselves.
+if (process.env.NODE_ENV !== "test") {
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-// Sets the timeout to 10 minutes (600,000 ms)
-server.timeout = 600000; 
-// These two lines prevent the connection from "stalling" while the AI thinks
-server.keepAliveTimeout = 610000;
-server.headersTimeout = 620000;
+  // Sets the timeout to 10 minutes (600,000 ms)
+  server.timeout = 600000;
+  // These two lines prevent the connection from "stalling" while the AI thinks
+  server.keepAliveTimeout = 610000;
+  server.headersTimeout = 620000;
+}
