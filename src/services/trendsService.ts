@@ -249,6 +249,7 @@ async function enrichFromCache(
   console.log(`[Trends] Cache-first enrichment for ${suggestions.length} suggestions...`);
   const enriched: ReportSuggestion[] = [];
   const misses: string[] = [];
+  let hits = 0;
 
   for (const suggestion of suggestions) {
     const keyword = suggestion.marketKeyword;
@@ -269,6 +270,7 @@ async function enrichFromCache(
     }
 
     if (cached) {
+      hits += 1;
       enriched.push({
         ...suggestion,
         trendScore: cached.trendScore,
@@ -290,6 +292,7 @@ async function enrichFromCache(
     await upstash.kvSAdd(TREND_REQUESTED_SET, ...misses);
     console.log(`[Trends] ${misses.length} cache miss(es) queued for the next fetch: ${misses.join(', ')}`);
   }
+  console.log(`[Trends] ${suggestions.length} suggestions: ${hits} cache hit(s), ${misses.length} miss(es).`);
   console.log('[Trends] Cache-first enrichment complete.');
   return enriched;
 }
