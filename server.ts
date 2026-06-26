@@ -21,6 +21,7 @@ import { fetchTedNotices } from "./src/services/tedService";
 import { fetchUkFtsNotices } from "./src/services/ukFtsService";
 import { fetchFederalRegisterNotices } from "./src/services/federalRegisterService";
 import { fetchEpoPatents } from "./src/services/epoService";
+import { isConfigured as isUpstashConfigured } from "./src/services/upstashKv";
 import { assembleCombinedSignals } from "./src/services/ingestion/assembleIngestion";
 import type { IngestionRecord } from "./src/services/ingestion/ingestionTypes";
 import { generateBriefDocxBuffer } from "./src/services/briefExportServer";
@@ -1036,6 +1037,11 @@ app.get("*", (_, res) => {
 if (process.env.NODE_ENV !== "test") {
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(
+      isUpstashConfigured()
+        ? "[Upstash] Configured — SAM.gov/EPO quota state is durable across restarts."
+        : "[Upstash] Not configured — quota state falls back to ephemeral /tmp."
+    );
   });
 
   // Sets the timeout to 10 minutes (600,000 ms)

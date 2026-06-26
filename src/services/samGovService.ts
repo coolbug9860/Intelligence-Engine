@@ -22,6 +22,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as upstash from './upstashKv';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LOCAL TYPE — UNCHANGED (the SamSignal→EDGARSignal seam depends on this shape)
@@ -94,6 +95,33 @@ function writeQuota(state: QuotaState): void {
   } catch (err) {
     console.warn('[SAM.gov] Failed to persist quota:', err);
   }
+}
+
+/** Durable Redis key for today's counter (UTC-date-scoped → self-resets daily). */
+function quotaKey(): string {
+  return `kaiso:samgov:quota:${todayUtc()}`;
+}
+
+/**
+ * Reserve ONE request against the daily budget, returning true if it may proceed.
+ * Prefers a durable Upstash counter (atomic INCR, survives Render restarts); falls
+ * back to the /tmp file when Upstash is unset or unreachable. The date-scoped key
+ * auto-resets each UTC day; the 48h TTL is only cleanup.
+ */
+async function reserveDailyRequest(limit: number): Promise<boolean> {
+  if (upstash.isConfigured()) {
+    const key = quotaKey();
+    const count = await upstash.kvIncr(key);
+    if (count !== null) {
+      if (count === 1) await upstash.kvExpire(key, 2 * 24 * 60 * 60); // 48h cleanup
+      return count <= limit;
+    }
+    // Upstash unavailable → fall through to the local file gate.
+  }
+  const quota = readQuota();
+  if (quota.count >= limit) return false;
+  writeQuota({ date: quota.date, count: quota.count + 1 });
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -198,15 +226,13 @@ export async function fetchSamNoticeById(noticeId: string): Promise<SamSignal | 
   }
 
   // Quota gate: hard-stop BEFORE any network call (Req 5.7, budget protection).
+  // Durable via Upstash when configured; /tmp fallback otherwise. Reserves the
+  // slot atomically, so an exhausted budget returns null without a request.
   const limit = dailyLimit();
-  const quota = readQuota();
-  if (quota.count >= limit) {
+  if (!(await reserveDailyRequest(limit))) {
     console.warn(`[SAM.gov] Daily quota of ${limit} reached — lookup unavailable for "${noticeId}".`);
     return null;
   }
-
-  // Reserve the request against the daily budget before spending it.
-  writeQuota({ date: quota.date, count: quota.count + 1 });
 
   try {
     const params = new URLSearchParams({ api_key: apiKey });

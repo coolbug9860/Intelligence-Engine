@@ -32,6 +32,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { IngestionRecord } from './ingestion/ingestionTypes';
+import * as upstash from './upstashKv';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG
@@ -109,7 +110,11 @@ function isCacheValid(cache: EpoCache): boolean {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // THROTTLE COOLDOWN (negative cache) — set on 429/403, honours Retry-After
+// Durable via Upstash (key existence + TTL) when configured; /tmp fallback else.
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Durable Redis key for the throttle cooldown (presence = cooling down). */
+const COOLDOWN_KEY = 'kaiso:epo:cooldown';
 
 /** Epoch ms until which EPO is in cooldown (0 = none / unreadable). */
 function readCooldownUntil(): number {
@@ -124,11 +129,20 @@ function readCooldownUntil(): number {
   }
 }
 
-function isCoolingDown(): boolean {
+async function isCoolingDown(): Promise<boolean> {
+  if (upstash.isConfigured()) {
+    const exists = await upstash.kvExists(COOLDOWN_KEY);
+    if (exists !== null) return exists; // Redis TTL auto-expires the key.
+  }
   return Date.now() < readCooldownUntil();
 }
 
-function writeCooldown(ms: number): void {
+async function writeCooldown(ms: number): Promise<void> {
+  if (upstash.isConfigured()) {
+    const until = new Date(Date.now() + ms).toISOString();
+    const ok = await upstash.kvSetEx(COOLDOWN_KEY, until, Math.ceil(ms / 1000));
+    if (ok) return;
+  }
   try {
     const until = new Date(Date.now() + ms).toISOString();
     fs.writeFileSync(cooldownFile(), JSON.stringify({ until }), 'utf-8');
@@ -190,9 +204,23 @@ function readWeekly(): WeeklyState {
 /**
  * Reserve ONE upstream request against the weekly budget. Returns false (and does
  * NOT increment) when the safety threshold is already reached — the hard-stop.
+ *
+ * Prefers a durable Upstash counter (atomic INCR, survives Render restarts) keyed
+ * to a fixed epoch-aligned 7-day bucket; falls back to the /tmp rolling-window file
+ * when Upstash is unset or unreachable.
  */
-function tryReserveWeeklyRequest(): boolean {
+async function tryReserveWeeklyRequest(): Promise<boolean> {
   const limit = weeklyLimit();
+  if (upstash.isConfigured()) {
+    const bucket = Math.floor(Date.now() / WEEK_MS);
+    const key = `kaiso:epo:quota:week:${bucket}`;
+    const count = await upstash.kvIncr(key);
+    if (count !== null) {
+      if (count === 1) await upstash.kvExpire(key, 14 * 24 * 60 * 60); // 14d cleanup
+      return count <= limit;
+    }
+    // Upstash unavailable → fall through to the local file gate.
+  }
   const state = readWeekly();
   if (state.count >= limit) return false;
   try {
@@ -313,7 +341,7 @@ async function getAccessToken(): Promise<string | null> {
   }
 
   // Hard-stop: never issue an auth request once the weekly budget is spent.
-  if (!tryReserveWeeklyRequest()) {
+  if (!(await tryReserveWeeklyRequest())) {
     console.warn('[EPO] Weekly request budget exhausted — auth skipped.');
     return null;
   }
@@ -333,7 +361,7 @@ async function getAccessToken(): Promise<string | null> {
     if (isThrottled(response)) {
       const ms = parseRetryAfterMs(response);
       console.warn(`[EPO] Auth throttled (HTTP ${response.status}) — cooling down ~${Math.round(ms / 1000)}s.`);
-      writeCooldown(ms);
+      await writeCooldown(ms);
       return null;
     }
     if (!response.ok) {
@@ -436,7 +464,7 @@ export async function fetchEpoPatents(): Promise<IngestionRecord[]> {
   }
 
   // Negative cache: a recent 429/403 parks us until the cooldown expires.
-  if (isCoolingDown()) {
+  if (await isCoolingDown()) {
     console.warn('[EPO] In cooldown after upstream throttling — skipping until it expires.');
     return [];
   }
@@ -445,7 +473,7 @@ export async function fetchEpoPatents(): Promise<IngestionRecord[]> {
   if (!token) return [];
 
   // Hard-stop: never issue the search request once the weekly budget is spent.
-  if (!tryReserveWeeklyRequest()) {
+  if (!(await tryReserveWeeklyRequest())) {
     console.warn('[EPO] Weekly request budget exhausted — search skipped.');
     return [];
   }
@@ -460,7 +488,7 @@ export async function fetchEpoPatents(): Promise<IngestionRecord[]> {
     if (isThrottled(response)) {
       const ms = parseRetryAfterMs(response);
       console.warn(`[EPO] Search throttled (HTTP ${response.status}) — cooling down ~${Math.round(ms / 1000)}s.`);
-      writeCooldown(ms);
+      await writeCooldown(ms);
       return [];
     }
     if (!response.ok) {
