@@ -42,7 +42,7 @@ Don't re-scan the whole repo. Use these docs to jump straight to the right file 
 - `.gitignore` already excludes `node_modules`, `dist`, `.env*`, `kaiso-memory.json`, `edgar-cache.json`. Never commit secrets or temp `.mjs` diagnostic scripts (delete them when done).
 
 ## 6. Render env vars (must be set in dashboard, not code)
-`GEMINI_API_KEY` (req) + `GEMINI_API_KEY_2.._5` (opt), `KAISO_USERNAME`, `KAISO_PASSWORD` (req for login), `ALLOWED_ORIGIN` (optional now — CORS defaults to `RENDER_EXTERNAL_URL`), `NEWS_API_KEY` (opt), `KAISO_AUTH_TOKEN` (opt, keeps logins alive across restarts). Do NOT set `PORT` (Render injects it). SMTP_* reserved for the unbuilt digest feature.
+`GEMINI_API_KEY` (req) + `GEMINI_API_KEY_2.._5` (opt), `KAISO_USERNAME`, `KAISO_PASSWORD` (req for login), `ALLOWED_ORIGIN` (optional now — CORS defaults to `RENDER_EXTERNAL_URL`), `NEWS_API_KEY` (opt), `KAISO_AUTH_TOKEN` (opt, keeps logins alive across restarts). Do NOT set `PORT` (Render injects it). `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` (opt) make SAM.gov/EPO quota state durable across restarts.
 
 ## 7. Editing conventions
 - Engines are pure functions `(suggestion|signals) → same` and chained in `intelligenceOrchestrator`. To add a stage, add it there in the right order (normalization before scoring; enrichment is post-pipeline in `server.ts`).

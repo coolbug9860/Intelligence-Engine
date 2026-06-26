@@ -17,4 +17,25 @@ export default defineConfig({
   server: {
     hmr: process.env.DISABLE_HMR !== 'true',
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split large, rarely-changing vendor code into separate cacheable
+        // chunks. Keeps the main app chunk small and silences Render's
+        // >500 KB single-bundle warning.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          // Keep html2canvas in its own async chunk (it's dynamically imported
+          // only for snapshot export — must NOT be pulled into eager vendor).
+          if (id.includes('html2canvas')) return;
+          if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) {
+            return 'react-vendor';
+          }
+          if (id.includes('motion') || id.includes('framer-motion')) return 'motion';
+          if (id.includes('lucide-react')) return 'icons';
+          return 'vendor';
+        },
+      },
+    },
+  },
 });

@@ -16,7 +16,7 @@ Kaiso-Intelligence-OS/
 │                                 start (node dist/server.cjs), lint (tsc --noEmit). engines: node >=20.
 ├── vite.config.ts                React + Tailwind. NO define block (keys stay server-side).
 ├── tsconfig.json                 noEmit, bundler resolution, allowJs.
-├── .env.example                  GEMINI_API_KEY(_2.._5), NEWS_API_KEY, KAISO_USERNAME/PASSWORD, SMTP_*
+├── .env.example                  GEMINI_API_KEY(_2.._5), NEWS_API_KEY, KAISO_USERNAME/PASSWORD, UPSTASH_*
 ├── index.html                    SPA shell.
 │
 ├── AI_CONTEXT/                   ← THIS folder. Long-term AI memory layer.

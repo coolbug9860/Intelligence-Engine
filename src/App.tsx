@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import DocumentationView from './components/DocumentationView';
-import HelpPanel from './components/HelpPanel';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+// On-demand modals — lazy-loaded so they stay out of the initial bundle.
+const DocumentationView = lazy(() => import('./components/DocumentationView'));
+const HelpPanel = lazy(() => import('./components/HelpPanel'));
 import { 
   ShieldCheck, 
   RefreshCw, 
@@ -746,14 +747,16 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
           </div>
         </footer>
       </main>
-      <AnimatePresence mode="wait">
-       {showDocumentation && (
-           <DocumentationView key="documentation-view" onClose={() => setShowDocumentation(false)} />
-        )}
-       {showHelp && (
-           <HelpPanel key="help-panel" onClose={() => setShowHelp(false)} />
-        )}
-      </AnimatePresence>
+      <Suspense fallback={null}>
+        <AnimatePresence mode="wait">
+         {showDocumentation && (
+             <DocumentationView key="documentation-view" onClose={() => setShowDocumentation(false)} />
+          )}
+         {showHelp && (
+             <HelpPanel key="help-panel" onClose={() => setShowHelp(false)} />
+          )}
+        </AnimatePresence>
+      </Suspense>
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

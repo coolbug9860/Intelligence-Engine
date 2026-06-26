@@ -41,9 +41,11 @@
 1. **FBI + Allied Market Research scraper repair** — whitespace currently runs on only 2 of 4 publishers (FBI returns 0 titles = JS-rendered; AMR returns HTTP 500). Either fix scraping (needs headless render / different endpoint) or replace publishers. The 0-titles guard prevents false confidence, but coverage is degraded.
 2. **Threshold re-validation** — 68 was set from one real run's distribution. Re-check after a few runs; nudge if PUBLISH NOW count drifts.
 3. **Google Trends reliability** — blocked on Render datacenter IPs (~100% UNKNOWN). Pipeline is resilient, but if trend signal matters, swap `google-trends-api` for a paid endpoint (SerpApi / DataForSEO) in `trendsService`.
-4. **Weekly digest email** — Nodemailer endpoint, top-3 PUBLISH NOW. Env already reserved: `SMTP_HOST/PORT/USER/PASS`, `DIGEST_RECIPIENT`.
-5. **Frontend bundle splitting** — main JS bundle ~834 KB (Render warns). Lazy-load heavy views (GlobalHeatmap, NexusGraph, DocumentationView).
-6. **Decision on the orphaned ontology cluster** — `schemaRegistry` + 7 engines (~8 files) are dead weight. Either wire them into a future RAG/agentic layer or remove. They add build size + confusion (naming collisions).
+4. **Decision on the orphaned ontology cluster** — `schemaRegistry` + 7 engines (~8 files) are dead weight. Either wire them into a future RAG/agentic layer or remove. They add build size + confusion (naming collisions).
+
+> **Done:** Frontend bundle splitting (2026-06-27). Added `manualChunks` vendor split (react-vendor / motion / icons / vendor) + lazy-loaded the DocumentationView and HelpPanel modals. Main app chunk 877 KB → 200 KB; Render's >500 KB warning cleared. NOTE: the roadmap's named targets — GlobalHeatmap, NexusGraph, MapChart — turned out to be **dead code** (imported nowhere, already tree-shaken). Candidates for deletion under the cleanup item below.
+
+> **Dropped:** Weekly digest email (Nodemailer / SMTP) — descoped 2026-06-26. SMTP_*/DIGEST_RECIPIENT env reservations retired.
 
 ## Known issues / non-fatal quirks
 - `validationEngine` Rule 5 (temporal drift) is a no-op; Rules 3/4 read fields the prompt never populates.
