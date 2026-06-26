@@ -103,7 +103,12 @@ function computeUrgency(s: ReportSuggestion): ActionUrgency {
 // PUBLISH NOW score gate. Raised from 62 → 68 after the EDGAR source-authority fix
 // lifted the evidence gate uniformly: with commercial value now driving the spread,
 // 62 promoted ~8 of 9 opportunities. 68 restores selectivity to a top slate (~4-5).
-const PUBLISH_SCORE_THRESHOLD = 68;
+// Env-overridable (PUBLISH_SCORE_THRESHOLD) so the value can be re-tuned from the
+// Render dashboard without a redeploy; falls back to 68 if unset/invalid.
+const PUBLISH_SCORE_THRESHOLD = (() => {
+  const n = Number(process.env.PUBLISH_SCORE_THRESHOLD);
+  return Number.isFinite(n) && n > 0 ? n : 68;
+})();
 
 // PASS floor — below this, commercial signal is too weak to commission.
 const PASS_SCORE_FLOOR = 45;

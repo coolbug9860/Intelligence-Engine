@@ -1,7 +1,7 @@
 # KAISO Services Index
 
-> Every file in `src/services/` (30 total). Each entry: **purpose · inputs · outputs · dependencies · wired?**. "Wired?" = is it in the live execution path.
-> Legend: 🟢 LIVE (in pipeline/server) · 🔵 LIVE (post-pipeline enrichment) · 🟠 LIVE (ingestion/export) · ⚫ ORPHANED (not imported by any live code).
+> Every file in `src/services/` (22 total). Each entry: **purpose · inputs · outputs · dependencies · wired?**. "Wired?" = is it in the live execution path.
+> Legend: 🟢 LIVE (in pipeline/server) · 🔵 LIVE (post-pipeline enrichment) · 🟠 LIVE (ingestion/export).
 
 ---
 
@@ -104,20 +104,9 @@
 
 ---
 
-## ⚫ ORPHANED — Canonical Ontology cluster (NOT in live path)
+## ⚫ REMOVED — Canonical Ontology cluster (deleted 2026-06-27)
 
-> These 8 files form a parallel "v2.0.0" architecture. None are imported by `intelligenceOrchestrator`, `server.ts`, `App.tsx`, components, or pages. They use `schemaRegistry` types (`Signal`/`Forecast`/`Evidence`/etc.), **not** `ReportSuggestion`. Treat as future scaffolding. Do not assume they affect runtime output.
-
-### schemaRegistry.ts
-- Shared ontology: enums (`SignalType`, `ConfidenceBand`, `ForecastClassification`=emerging/growing/stable/declining/disruptive, `CausalType`, etc.), base interfaces (`BaseIntelligenceObject`, `ConfidenceScore`, `Evidence`, `Signal`, `Forecast`, `Recommendation`, `CausalNode`/`CausalEdge`/`CausalPath`, …), normalization helpers (`clamp`, `normalizeConfidence`, `createConfidenceScore`, `calculateWeightedConfidence`). `SEMANTIC_VERSION = "2.0.0"`. ⚠️ Redefines names that also exist in `types.ts` and live engines (see TYPES_REFERENCE.md).
-
-### evidenceEngine.ts — evidence chains, corroboration/contradiction, provenance. Exports `EvidenceChain`, `EvidenceAnalysisResult`.
-### evaluationEngine.ts — `class EvaluationEngine`; system health/integrity metrics (recommendation quality, ranking integrity, forecast stability, calibration).
-### benchmarkEngine.ts — `class BenchmarkEngine`; longitudinal calibration/health snapshots, degradation detection.
-### causalInferenceEngine.ts — deterministic causal graph inference: nodes/edges/paths, propagation, root-cause, intervention. Largest of the orphans.
-### recommendationEngine.ts — converts Forecast+Priority+Signal into ranked `Recommendation[]` (diversity-protected). Self-described as the layer after Priority Engine — but the LIVE pipeline never calls it.
-### retrievalEngine.ts — semantic/temporal/entity retrieval + pattern recall + relevance ranking.
-### simulationEngine.ts — `class SimulationEngine`; scenario/counterfactual/stress/sensitivity simulation with perturbations.
+> The 8-file "v2.0.0" ontology (`schemaRegistry` + `evidenceEngine`, `evaluationEngine`, `benchmarkEngine`, `causalInferenceEngine`, `recommendationEngine`, `retrievalEngine`, `simulationEngine`) was never imported by any live code and has been deleted. It used a `schemaRegistry`-based type system (`Signal`/`Forecast`/`Evidence`/etc.) with no bridge to `ReportSuggestion`. The dead `NexusGraph`/`GlobalHeatmap`/`MapChart` components were removed in the same pass. A future agentic layer should be built fresh against `types.ts`.
 
 ---
 

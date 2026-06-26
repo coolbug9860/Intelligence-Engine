@@ -38,12 +38,19 @@
 
 ## Open / next (priority order)
 
-1. **FBI + Allied Market Research scraper repair** — whitespace currently runs on only 2 of 4 publishers (FBI returns 0 titles = JS-rendered; AMR returns HTTP 500). Either fix scraping (needs headless render / different endpoint) or replace publishers. The 0-titles guard prevents false confidence, but coverage is degraded.
-2. **Threshold re-validation** — 68 was set from one real run's distribution. Re-check after a few runs; nudge if PUBLISH NOW count drifts.
-3. **Google Trends reliability** — blocked on Render datacenter IPs (~100% UNKNOWN). Pipeline is resilient, but if trend signal matters, swap `google-trends-api` for a paid endpoint (SerpApi / DataForSEO) in `trendsService`.
-4. **Decision on the orphaned ontology cluster** — `schemaRegistry` + 7 engines (~8 files) are dead weight. Either wire them into a future RAG/agentic layer or remove. They add build size + confusion (naming collisions).
+1. **Google Trends reliability** — **ON HOLD (2026-06-27).** Parked pending a from-scratch rethink of the trend-signal approach or a better data source. Currently ~100% UNKNOWN on Render datacenter IPs. The pipeline is already resilient to this (UNKNOWN never blocks PUBLISH NOW; only a confirmed DECLINING trend vetoes), so there's no urgency. Options to weigh later: paid endpoint (SerpApi / DataForSEO), a different signal entirely, or dropping trend input. Do NOT start until a direction is chosen.
 
-> **Done:** Frontend bundle splitting (2026-06-27). Added `manualChunks` vendor split (react-vendor / motion / icons / vendor) + lazy-loaded the DocumentationView and HelpPanel modals. Main app chunk 877 KB → 200 KB; Render's >500 KB warning cleared. NOTE: the roadmap's named targets — GlobalHeatmap, NexusGraph, MapChart — turned out to be **dead code** (imported nowhere, already tree-shaken). Candidates for deletion under the cleanup item below.
+## Action needed from operator (config, not code)
+- **Set `TAVILY_API_KEY`** (Render env + local `.env`). Without it, competitor white-space detection returns UNKNOWN for every opportunity. Free tier: 1,000 searches/month, no card. This — not any scraper — is why whitespace coverage looks degraded.
+- **(Optional) re-tune `PUBLISH_SCORE_THRESHOLD`** — now env-overridable (default 68). After a few production runs, if the PUBLISH NOW count drifts from the intended ~4–5 top slate, nudge the env var instead of editing code.
+
+> **Done:** Orphaned ontology cluster REMOVED (2026-06-27). Deleted `schemaRegistry` + the 7 engines (`evidence`/`evaluation`/`benchmark`/`causalInference`/`recommendation`/`retrieval`/`simulation`) and the dead `NexusGraph`/`GlobalHeatmap`/`MapChart` components — 11 files, all unreferenced by the live path. AI_CONTEXT docs + the `concept-two-architectures` KB entry updated. `tsc` green. (`d3` is now an unused dependency — safe to drop from package.json in a future pass.)
+
+> **Done:** "FBI/AMR scraper repair" was STALE (2026-06-27). The legacy four-publisher scrape was already replaced by `serpOpportunityDetectionService` (Tavily SERP). No scraper code exists to repair — the real fix is configuring `TAVILY_API_KEY` (see Action needed above). Documented the key + `SERP_*` tunables in `.env.example`.
+
+> **Done:** Threshold made env-overridable (2026-06-27). `PUBLISH_SCORE_THRESHOLD` in `actionClassificationEngine` now reads from env (default 68). Value re-validation still needs production score distributions — see Action needed above.
+
+> **Done:** Frontend bundle splitting (2026-06-27). Added `manualChunks` vendor split (react-vendor / motion / icons / vendor) + lazy-loaded the DocumentationView and HelpPanel modals. Main app chunk 877 KB → 200 KB; Render's >500 KB warning cleared.
 
 > **Dropped:** Weekly digest email (Nodemailer / SMTP) — descoped 2026-06-26. SMTP_*/DIGEST_RECIPIENT env reservations retired.
 

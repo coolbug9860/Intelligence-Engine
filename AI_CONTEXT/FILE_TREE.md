@@ -1,6 +1,6 @@
 # KAISO File Tree (Architecture View)
 
-> Annotated, architecture-focused. Not every file — the ones that matter and what they do. ✅ = hot path you'll touch often. ⚫ = orphaned (not in live execution).
+> Annotated, architecture-focused. Not every file — the ones that matter and what they do. ✅ = hot path you'll touch often.
 
 ```
 Kaiso-Intelligence-OS/
@@ -23,7 +23,7 @@ Kaiso-Intelligence-OS/
 │   ├── SYSTEM_OVERVIEW.md         what/why/stack/two-architectures
 │   ├── PIPELINE_MAP.md            full execution flow (read this first for "how a run works")
 │   ├── SERVICES_INDEX.md          every service: purpose/inputs/outputs/deps/wired
-│   ├── TYPES_REFERENCE.md         ReportSuggestion lifecycle + ontology collisions
+│   ├── TYPES_REFERENCE.md         ReportSuggestion lifecycle + type reference
 │   ├── CURRENT_ROADMAP.md         shipped / open / known issues
 │   ├── FILE_TREE.md               this file
 │   └── KAISO_RULES.md             rules for future AI sessions (READ FIRST)
@@ -46,12 +46,9 @@ Kaiso-Intelligence-OS/
     │   ├── IntelligenceProfile.tsx         detail: confidence model
     │   ├── ExportDossier.tsx               detail: image/canvas export
     │   ├── LoginScreen.tsx                 auth gate
-    │   ├── DocumentationView.tsx ⬚         in-app docs (lazy-load candidate, large)
-    │   ├── GlobalHeatmap.tsx ⬚             (lazy-load candidate, large)
-    │   ├── NexusGraph.tsx ⬚                (lazy-load candidate, large)
-    │   └── MapChart.tsx                    geo viz
+    │   └── DocumentationView.tsx ⬚         in-app docs (lazy-loaded)
     │
-    └── services/                 ALL business logic. 30 files. Full detail in SERVICES_INDEX.md.
+    └── services/                 ALL business logic. 22 files. Full detail in SERVICES_INDEX.md.
         │
         │  ── LIVE PIPELINE (orchestrated) ──
         ├── intelligenceOrchestrator.ts ✅   runIntelligencePipeline — the 12-stage conductor
@@ -79,16 +76,6 @@ Kaiso-Intelligence-OS/
         ├── serpOpportunityDetectionService.ts ✅ SERP white-space detection (Tavily; replaced legacy scrape)
         ├── actionClassificationEngine.ts ✅  PUBLISH/MONITOR/PASS verdict (threshold 68)
         ├── briefExportServer.ts 🟠          DOCX export
-        │
-        │  ── ⚫ ORPHANED ONTOLOGY CLUSTER (not wired) ──
-        ├── schemaRegistry.ts ⚫             canonical ontology v2.0.0 (separate type system)
-        ├── evidenceEngine.ts ⚫
-        ├── evaluationEngine.ts ⚫
-        ├── benchmarkEngine.ts ⚫
-        ├── causalInferenceEngine.ts ⚫
-        ├── recommendationEngine.ts ⚫
-        ├── retrievalEngine.ts ⚫
-        └── simulationEngine.ts ⚫
 ```
 
 ## Where to go for a given task

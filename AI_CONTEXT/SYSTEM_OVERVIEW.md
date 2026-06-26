@@ -12,7 +12,7 @@ Real commissioning happens **weekly** (commission 1–2 reports). Daily runs mai
 
 ## Tech stack (verified)
 
-- **Frontend:** React 19 + TypeScript, Tailwind v4, Vite 6, Motion, lucide-react, d3. SPA with two pages routed by `?page=opportunity` query param (`src/main.tsx`).
+- **Frontend:** React 19 + TypeScript, Tailwind v4, Vite 6, Motion, lucide-react. SPA with two pages routed by `?page=opportunity` query param (`src/main.tsx`).
 - **Backend:** Node + Express (`server.ts`), bundled with esbuild to `dist/server.cjs`.
 - **AI:** Google Gemini via `@google/genai`. `gemini-2.5-flash` for analysis, `gemini-2.5-pro` for brief generation. Multi-key rotation (up to 5 keys).
 - **Ingestion:** SEC EDGAR full-text search + RSS (`rss-parser`) + optional NewsAPI.
@@ -21,11 +21,11 @@ Real commissioning happens **weekly** (commission 1–2 reports). Daily runs mai
 
 > ⚠️ This app is **NOT** serverless-compatible (Vercel/Lambda). The pipeline runs for minutes (server timeout 10 min), relies on a persistent process for in-memory caches + key-rotation state, and uses `/tmp` persistence. It must run on a persistent-process host (Render/Railway/Fly).
 
-## Two architectures live in this repo (critical)
+## Single live architecture (orphaned ontology removed 2026-06-27)
 
-1. **THE LIVE PIPELINE** — everything actually executed. Built on `src/types.ts` (`ReportSuggestion`). Orchestrated by `src/services/intelligenceOrchestrator.ts`, driven by `server.ts`. ~22 of the 30 service files.
+The repo has **one** type system: the **LIVE PIPELINE** built on `src/types.ts` (`ReportSuggestion`), orchestrated by `src/services/intelligenceOrchestrator.ts` and driven by `server.ts` (~22 service files).
 
-2. **THE ORPHANED ONTOLOGY CLUSTER** — `src/services/schemaRegistry.ts` ("Canonical Ontology v2.0.0") plus 7 engines that import it: `evidenceEngine`, `evaluationEngine`, `benchmarkEngine`, `causalInferenceEngine`, `recommendationEngine`, `retrievalEngine`, `simulationEngine`. **None of these are imported by the orchestrator, server, App, or components.** They are scaffolding for a future RAG/agentic architecture and do **not** run. They use a different type system than the live pipeline (see TYPES_REFERENCE.md → naming collisions). Do not assume they affect output.
+> A former **orphaned "Canonical Ontology v2.0.0" cluster** (`schemaRegistry.ts` + the `evidence`/`evaluation`/`benchmark`/`causalInference`/`recommendation`/`retrieval`/`simulation` engines) was scaffolding for a future RAG/agentic layer that nothing live ever imported. It — plus the dead `NexusGraph`/`GlobalHeatmap`/`MapChart` components — was **removed** to drop dead weight and the type-name collisions it caused. If a future agentic layer is built, start it fresh against `types.ts`.
 
 ## High-level flow (see PIPELINE_MAP.md for detail)
 

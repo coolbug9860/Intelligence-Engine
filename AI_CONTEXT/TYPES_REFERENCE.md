@@ -1,6 +1,6 @@
 # KAISO Types Reference
 
-> Source of truth for the LIVE pipeline is `src/types.ts`. The orphaned cluster uses `src/services/schemaRegistry.ts` — a **separate, incompatible** type system. This file maps both and flags the collisions.
+> Source of truth for the LIVE pipeline is `src/types.ts`. (A former orphaned `schemaRegistry.ts` ontology with an incompatible parallel type system was removed 2026-06-27, eliminating the naming collisions this file used to flag.)
 
 ## The central type: `ReportSuggestion` (types.ts)
 
@@ -60,17 +60,6 @@ This is THE object that flows through the entire live pipeline. It accretes fiel
 ## Memory types (memoryEngine.ts)
 `IntelligenceMemory { state, cycles[], themes[], recurrences[], forecastEvolution[] }`. `IntelligenceCycleMemory { cycleId, generatedAt, signals }`. `MemorySnapshot`/`ClusterMemoryRecord` feed evolutionEngine.
 
-## ⚠️ Naming collisions — live vs orphan ontology
+## Naming collisions — resolved (2026-06-27)
 
-The same names mean different things depending on the file. **Always check the import path.**
-
-| Name | Live meaning (`types.ts` / live engines) | Orphan meaning (`schemaRegistry.ts`) |
-|---|---|---|
-| `ForecastClassification` | `Transient \| Emerging \| Structural \| Supercycle` (forecastEngine) | `emerging \| growing \| stable \| declining \| disruptive` |
-| `CausalNode` | `{ stage, description, intensity }` (types.ts) | `BaseIntelligenceObject + label/category/confidence` |
-| `RelationshipType` | reasoningEngine's 8 string union | schemaRegistry's 8 enum values |
-| `PropagationResult` | signalPropagationEngine's shape | schemaRegistry / causalInferenceEngine shape |
-| `SignalType` | string union on `ReportSuggestion.signalType` | schemaRegistry enum |
-| `ConfidenceScore` | (n/a) | schemaRegistry object `{ value, band, uncertainty }` |
-
-The orphan ontology (`Signal`, `Forecast`, `Recommendation`, `Evidence`, etc.) has **no bridge** to `ReportSuggestion`. Nothing converts between the two systems at runtime.
+The former orphaned `schemaRegistry.ts` ontology redefined several names that also exist in the live pipeline (`ForecastClassification`, `CausalNode`, `RelationshipType`, `PropagationResult`, `SignalType`, `ConfidenceScore`). That cluster has been deleted, so each name now has a **single** meaning — the live one in `types.ts` / the live engines. Always-check-the-import-path is no longer a hazard.

@@ -364,10 +364,10 @@ export const KNOWLEDGE_BASE: HelpEntry[] = [
   {
     id: 'concept-two-architectures',
     category: 'concept',
-    title: 'Two architectures (live vs orphaned)',
+    title: 'Single live architecture (orphaned ontology removed)',
     symbols: ['schemaRegistry'],
     aliases: ['two architectures', 'orphaned ontology', 'canonical ontology', 'which engines run', 'dead code'],
-    body: 'The repo holds two type systems. The LIVE pipeline uses types.ts (ReportSuggestion) + intelligenceOrchestrator + server.ts + ~22 services. The ORPHANED cluster (schemaRegistry.ts "Canonical Ontology v2.0.0" + evidence/evaluation/benchmark/causalInference/recommendation/retrieval/simulation engines) is NOT imported by anything live and does NOT run. Names collide across the two — always check the import path.',
+    body: 'The repo now has ONE type system. The LIVE pipeline uses types.ts (ReportSuggestion) + intelligenceOrchestrator + server.ts + ~22 services. A former ORPHANED cluster (schemaRegistry.ts "Canonical Ontology v2.0.0" + the evidence/evaluation/benchmark/causalInference/recommendation/retrieval/simulation engines) was never imported by anything live and has been REMOVED (2026-06-27), along with the dead NexusGraph/GlobalHeatmap/MapChart components. The earlier naming-collision hazard between the two systems no longer applies.',
     sourceDoc: 'AI_CONTEXT/SYSTEM_OVERVIEW.md',
   },
   {
