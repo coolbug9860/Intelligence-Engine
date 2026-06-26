@@ -20,6 +20,30 @@
 
 import googleTrends from 'google-trends-api';
 import { ReportSuggestion } from '../types';
+import * as upstash from './upstashKv';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UPSTASH CACHE KEYS (shared with scripts/fetchTrendsToUpstash.ts)
+//
+// The GitHub Action fetches Google Trends from a non-Render IP and writes results
+// here; Render reads cache-first and enqueues misses for the next Action run.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Per-keyword cached result key. Versioned so the shape can evolve safely. */
+export function trendCacheKey(cleanedKeyword: string): string {
+  return `kaiso:trend:v1:${cleanedKeyword}`;
+}
+
+/** Set of cleaned keywords the app wanted but missed — the Action's work queue. */
+export const TREND_REQUESTED_SET = 'kaiso:trend:requested';
+
+/** Cached payload shape stored in Upstash. */
+export interface CachedTrend {
+  trendScore: number;
+  trendDirection: TrendDirection;
+  trendDirectionLabel: string;
+  fetchedAt: string;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG
@@ -66,7 +90,7 @@ export interface TrendResult {
  * into a Google Trends-friendly search term ("electric vehicle battery").
  * Google Trends has no data for overly specific phrases with "global" or "market".
  */
-function cleanKeyword(raw: string): string {
+export function cleanKeyword(raw: string): string {
   return raw
     .toLowerCase()
     .replace(/^global\s+/i, '')          // strip leading "global "
@@ -193,17 +217,87 @@ export async function fetchKeywordTrend(keyword: string): Promise<TrendResult | 
 /**
  * enrichWithTrends()
  *
- * Takes the final 8 curatedPortfolio suggestions, queries Google Trends for
- * each one's marketKeyword, and returns the enriched array with trend fields
- * added. Processes sequentially with a delay to respect rate limits.
+ * Takes the final curatedPortfolio suggestions and appends trend fields.
  *
- * Non-fatal: suggestions without trend data are returned unchanged.
+ * When Upstash is configured (production): reads each keyword's trend from the
+ * Upstash cache that the scheduled GitHub Action populates from a non-blocked IP.
+ * A cache MISS enqueues the keyword for the next Action run and yields UNKNOWN —
+ * Render never calls Google directly (its IP is blocked, so it would only waste
+ * time). Eventually-consistent: new keywords resolve within one Action cycle.
+ *
+ * When Upstash is NOT configured (dev/local): falls back to the legacy direct
+ * Google Trends query, preserving the original behavior.
+ *
+ * Non-fatal throughout: any failure leaves suggestions with UNKNOWN trend fields.
  */
 export async function enrichWithTrends(
   suggestions: ReportSuggestion[]
 ): Promise<ReportSuggestion[]> {
   if (!suggestions.length) return suggestions;
 
+  if (upstash.isConfigured()) {
+    return enrichFromCache(suggestions);
+  }
+
+  return enrichFromGoogle(suggestions);
+}
+
+/** Production path: cache-first via Upstash, enqueue misses for the Action. */
+async function enrichFromCache(
+  suggestions: ReportSuggestion[]
+): Promise<ReportSuggestion[]> {
+  console.log(`[Trends] Cache-first enrichment for ${suggestions.length} suggestions...`);
+  const enriched: ReportSuggestion[] = [];
+  const misses: string[] = [];
+
+  for (const suggestion of suggestions) {
+    const keyword = suggestion.marketKeyword;
+    if (!keyword) {
+      enriched.push(suggestion);
+      continue;
+    }
+
+    const cleaned = cleanKeyword(keyword);
+    let cached: CachedTrend | null = null;
+    const raw = await upstash.kvGet(trendCacheKey(cleaned));
+    if (raw) {
+      try {
+        cached = JSON.parse(raw) as CachedTrend;
+      } catch {
+        cached = null;
+      }
+    }
+
+    if (cached) {
+      enriched.push({
+        ...suggestion,
+        trendScore: cached.trendScore,
+        trendDirection: cached.trendDirection,
+        trendDirectionLabel: cached.trendDirectionLabel,
+      });
+    } else {
+      misses.push(cleaned);
+      enriched.push({
+        ...suggestion,
+        trendDirection: 'UNKNOWN',
+        trendDirectionLabel: '— No data',
+      });
+    }
+  }
+
+  // Enqueue every miss so the next GitHub Action run fetches it.
+  if (misses.length) {
+    await upstash.kvSAdd(TREND_REQUESTED_SET, ...misses);
+    console.log(`[Trends] ${misses.length} cache miss(es) queued for the next fetch: ${misses.join(', ')}`);
+  }
+  console.log('[Trends] Cache-first enrichment complete.');
+  return enriched;
+}
+
+/** Dev/local path: direct Google Trends query (unchanged legacy behavior). */
+async function enrichFromGoogle(
+  suggestions: ReportSuggestion[]
+): Promise<ReportSuggestion[]> {
   console.log(`[Trends] Enriching ${suggestions.length} suggestions...`);
 
   const enriched: ReportSuggestion[] = [];

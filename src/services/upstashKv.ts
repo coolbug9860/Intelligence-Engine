@@ -100,3 +100,34 @@ export async function kvExists(key: string): Promise<boolean | null> {
   const result = await command(['EXISTS', key]);
   return typeof result === 'number' ? result === 1 : null;
 }
+
+/** GET a string value. Returns null when absent or Upstash is unavailable. */
+export async function kvGet(key: string): Promise<string | null> {
+  const result = await command(['GET', key]);
+  return typeof result === 'string' ? result : null;
+}
+
+/** SET key to a JSON-serialized value with an expiry (seconds). */
+export async function kvSetJson(key: string, value: unknown, seconds: number): Promise<boolean> {
+  return kvSetEx(key, JSON.stringify(value), seconds);
+}
+
+/** Add one or more members to a set. Returns the number added, or null on failure. */
+export async function kvSAdd(key: string, ...members: string[]): Promise<number | null> {
+  if (members.length === 0) return 0;
+  const result = await command(['SADD', key, ...members]);
+  return typeof result === 'number' ? result : null;
+}
+
+/** Return all members of a set ([] when empty/absent, null when unavailable). */
+export async function kvSMembers(key: string): Promise<string[] | null> {
+  const result = await command(['SMEMBERS', key]);
+  return Array.isArray(result) ? result.map(String) : null;
+}
+
+/** Remove one or more members from a set. Returns the number removed, or null. */
+export async function kvSRem(key: string, ...members: string[]): Promise<number | null> {
+  if (members.length === 0) return 0;
+  const result = await command(['SREM', key, ...members]);
+  return typeof result === 'number' ? result : null;
+}

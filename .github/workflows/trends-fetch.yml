@@ -1,0 +1,36 @@
+name: Fetch Google Trends → Upstash
+
+# Fetches Google Trends from GitHub's runner IP (not Render's blocked datacenter
+# IP) and writes results to Upstash for the app to read cache-first.
+on:
+  schedule:
+    - cron: '0 */12 * * *'   # every 12 hours (UTC)
+  workflow_dispatch: {}        # manual "Run workflow" button for testing
+
+# Avoid overlapping runs piling up requests to Google.
+concurrency:
+  group: trends-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch trends and write to Upstash
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: npx tsx scripts/fetchTrendsToUpstash.ts
