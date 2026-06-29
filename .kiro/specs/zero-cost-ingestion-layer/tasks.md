@@ -86,15 +86,15 @@ This plan implements the Zero-Cost Ingestion Layer as a low-blast-radius sequenc
   - _Requirements: 13.1, 13.2, 13.3_
 
 - [x] 6. Decoupled BLS reference layer
-  - Create `src/services/blsReferenceService.ts`: `getBlsReferenceTable()` with daily `/tmp` cache, 10s timeout, last-good (or empty-table) fallback on failure, never throws; `lookupSectorReference(table, vertical)` returns `undefined` when absent; seed `PCU334413334413` → `Technology/Semiconductors` and `PCU325412325412` → `Pharmaceutical Manufacturing` with one-to-one keying; exclude invalid/unmapped entries without throwing. Not part of the ingestion fan-out.
+  - Create `src/services/blsReferenceService.ts`: `getBlsReferenceTable()` with daily `/tmp` cache, 10s timeout, last-good (or empty-table) fallback on failure, never throws; `lookupSectorReference(table, vertical)` returns `undefined` when absent; seed `PCU334413334413` → `Semiconductor` and `PCU325412325412` → `Healthcare` with one-to-one keying; exclude invalid/unmapped entries without throwing. Not part of the ingestion fan-out.
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [x] 6.1 Scoring engine read seam (behavior-preserving)
-  - Add an optional, trailing, UNREAD `blsReference?: BlsReferenceTable` argument to `scoringEngine.calculateOpportunityScore` without changing the scoring math or any existing call site.
+- [x] 6.1 Scoring engine read seam → ACTIVE sector-dynamism nudge
+  - Add an optional, trailing `blsReference?: BlsReferenceTable` argument to `scoringEngine.calculateOpportunityScore`. When a row matches the suggestion's vertical, apply a bounded, boost-only multiplier `1 + min(0.05, |ppiYoyPct| / 200)` (symmetric, capped at +5%) as the final scoring factor; neutral when the table is omitted/undefined or the vertical is absent. Thread the table through the orchestrator, server.ts (`getBlsReferenceTable`), and the search-demand grounding recompute.
   - _Requirements: 4.5, 4.6, 4.7_
 
-- [x] 6.2 BLS + scoring neutrality tests
-  - Add `blsReferenceService.test.ts`: cache TTL/refresh behavior, failure fallback, series→vertical resolution. Add a scoring neutrality test asserting `calculateOpportunityScore` returns a `ReportSuggestion` deep-equal whether `blsReference` is omitted or `undefined`/absent-vertical.
+- [x] 6.2 BLS + scoring activation tests
+  - Add `blsReferenceService.test.ts`: cache TTL/refresh behavior, failure fallback, series→vertical resolution (canonical `Semiconductor` / `Healthcare`). Add `scoringEngine.blsActivation.test.ts` asserting the nudge is neutral when absent/omitted, raises the score on sharp PPI movement, is symmetric on `|ppiYoyPct|`, and is capped at +5%.
   - _Requirements: 4.3, 4.5, 4.6, 10.3_
 
 - [x] 7. SAM.gov demotion (coordinated with server.ts to avoid broken imports)

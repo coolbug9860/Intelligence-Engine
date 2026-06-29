@@ -19,7 +19,7 @@ These requirements are derived from and remain consistent with the approved `des
 - **lazy fetching**: Deferring the heavy `full_text_url` HTTP fetch until AFTER a record passes the keyword gate, so only matched records incur enrichment cost.
 - **Keyword_Gate**: The pure, synchronous, zero-LLM predicate (`matchRecord`) in `keywordGate.ts` that tests `headline + abstract` against 42 precompiled keywords.
 - **OCDS**: Open Contracting Data Standard — the release-package JSON format exposed by both UK FTS (Find a Tender) and Contracts Finder, parsed by a single shared parser.
-- **PPI reference table**: The daily-refreshed, `/tmp`-cached static `BlsReferenceTable` (`Record<vertical, BlsSectorReference>`) of Producer Price Index and wage-pressure weights, read read-only by `scoringEngine`.
+- **PPI reference table**: The daily-refreshed, `/tmp`-cached static `BlsReferenceTable` (`Record<vertical, BlsSectorReference>`) of Producer Price Index and wage-pressure weights, read by `scoringEngine` to apply a bounded sector-dynamism nudge.
 - **SAM watchlist**: The set of SAM.gov `noticeId` values to fetch surgically via `fetchSamNoticeById`. These IDs are NOT obtained by keyword sweep; they are extracted dynamically from Federal Register (Module 1) full-text payloads.
 - **Federal_Register_Connector**: The Module 1 connector that fetches U.S. regulatory notices via `api.data.gov` (using `DATA_GOV_API_KEY`), produces `IngestionRecord[]`, and is the origin of SAM watchlist notice IDs.
 - **TED_Connector**: `tedService.ts` — native `fetch` to the EU TED API producing `IngestionRecord[]`.
@@ -72,9 +72,9 @@ These requirements are derived from and remain consistent with the approved `des
 7. IF the UK FTS cache file is absent, unreadable, or contains invalid JSON, THEN THE UK_FTS_Connector SHALL treat it as a cache miss and fetch fresh records.
 8. WHEN fresh UK records are successfully fetched, THE UK_FTS_Connector SHALL write them to the configured `/tmp` cache path together with the current time as an ISO timestamp; IF the cache write fails, THEN THE UK_FTS_Connector SHALL emit a warning, return the freshly fetched records, and refrain from throwing.
 
-### Requirement 4: Decoupled BLS Reference Layer
+### Requirement 4: BLS Reference Layer (Active Sector-Dynamism Nudge)
 
-**User Story:** As a scoring maintainer, I want BLS macroeconomic data held as a daily static reference table read read-only by the scoring engine, so that macro context is available later without altering current scoring behavior or joining the ingestion race.
+**User Story:** As a scoring maintainer, I want BLS macroeconomic data held as a daily static reference table read by the scoring engine, so that sectors showing sharp cost movement receive a small, bounded scoring nudge without joining the ingestion race.
 
 #### Acceptance Criteria
 
@@ -83,8 +83,8 @@ These requirements are derived from and remain consistent with the approved `des
 3. WHILE the cached BLS reference table is 24 hours old or younger measured from its last successful write timestamp, THE BLS_Reference_Service SHALL return the cached table without issuing a network request.
 4. IF a BLS refresh request fails or exceeds the 10-second timeout, THEN THE BLS_Reference_Service SHALL return the last successfully cached table, or a `BlsReferenceTable` containing zero entries when no cache exists, and SHALL NOT throw or propagate an error to the caller.
 5. WHEN `lookupSectorReference` is called with a vertical that is absent from the table, THE BLS_Reference_Service SHALL return `undefined`.
-6. WHERE the optional `blsReference` argument to `calculateOpportunityScore` is `undefined` or the requested vertical is absent from the table, THE scoringEngine SHALL return a `ReportSuggestion` deep-equal to the one it returns for identical `suggestion` and `calibration` inputs when the `blsReference` argument is omitted.
-7. THE scoringEngine SHALL retain the existing `calculateOpportunityScore(suggestion, calibration?)` signature and scoring math, accepting `blsReference` only as an optional trailing argument that is never read by the scoring computation, so all existing call sites remain unchanged.
+6. WHERE the optional `blsReference` argument to `calculateOpportunityScore` is `undefined` or the requested vertical is absent from the table, THE scoringEngine SHALL return a `ReportSuggestion` deep-equal to the one it returns for identical `suggestion` and `calibration` inputs when the `blsReference` argument is omitted (i.e. the nudge is neutral when no row matches).
+7. WHEN a `blsReference` row matches the suggestion's vertical, THE scoringEngine SHALL apply a bounded, boost-only sector-dynamism multiplier of `1 + min(0.05, |ppiYoyPct| / 200)` (symmetric on the sign of `ppiYoyPct`, capped at +5%) as the final factor of `opportunityScore`, leaving the `calculateOpportunityScore(suggestion, calibration?, blsReference?)` signature and all call sites unchanged.
 
 ### Requirement 5: Precision SAM.gov Demotion
 
@@ -162,8 +162,8 @@ These requirements are derived from and remain consistent with the approved `des
 
 #### Acceptance Criteria
 
-1. THE BLS_Reference_Service SHALL include exactly one reference row for PPI commodity series `PCU334413334413`, keyed by case-sensitive exact match to the Kaiso vertical `Technology/Semiconductors`.
-2. THE BLS_Reference_Service SHALL include exactly one reference row for PPI commodity series `PCU325412325412`, keyed by case-sensitive exact match to the Kaiso vertical `Pharmaceutical Manufacturing`.
+1. THE BLS_Reference_Service SHALL include exactly one reference row for PPI commodity series `PCU334413334413`, keyed by case-sensitive exact match to the Kaiso vertical `Semiconductor`.
+2. THE BLS_Reference_Service SHALL include exactly one reference row for PPI commodity series `PCU325412325412`, keyed by case-sensitive exact match to the Kaiso vertical `Healthcare`.
 3. WHEN `lookupSectorReference` is called with a vertical that a configured PPI series is keyed to, THE BLS_Reference_Service SHALL return exactly one reference row whose vertical matches the argument and whose macro weight vector derives from that series.
 4. THE BLS_Reference_Service SHALL maintain a one-to-one mapping between configured PPI series and Kaiso verticals, with no duplicate or conflicting series-to-vertical entries.
 5. IF a configured series maps to a vertical that is unmapped or invalid, THEN THE BLS_Reference_Service SHALL exclude that entry without throwing, leaving the remaining series resolvable.

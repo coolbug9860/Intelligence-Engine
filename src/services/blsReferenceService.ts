@@ -9,8 +9,8 @@
  * ingestion fan-out (Req 4.1).
  *
  * Initial series (Req 10):
- *   - PCU334413334413 → "Technology/Semiconductors"
- *   - PCU325412325412 → "Pharmaceutical Manufacturing"
+ *   - PCU334413334413 → "Semiconductor"
+ *   - PCU325412325412 → "Healthcare"
  *
  * Resilient by design (Req 4.2, 4.3): cache-first (24h /tmp); on any failure it
  * returns the last good cached table, or an empty table when none exists — never throws.
@@ -49,10 +49,10 @@ const BLS_BASE_URL = 'https://api.bls.gov/publicAPI/v2/timeseries/data/';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 86,400,000 ms — daily refresh
 const REQUEST_TIMEOUT_MS = 10_000;
 
-/** One-to-one PPI series → Kaiso sector mapping (Req 10.1, 10.2, 10.4). */
+/** One-to-one PPI series → canonical Kaiso vertical mapping (Req 10.1, 10.2, 10.4). */
 const SERIES_VERTICAL_MAP: Record<string, string> = {
-  PCU334413334413: 'Technology/Semiconductors',
-  PCU325412325412: 'Pharmaceutical Manufacturing',
+  PCU334413334413: 'Semiconductor',
+  PCU325412325412: 'Healthcare',
 };
 
 function cacheFile(): string {

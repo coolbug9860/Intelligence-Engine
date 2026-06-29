@@ -58,8 +58,8 @@ describe('getBlsReferenceTable — series → vertical mapping (Req 10.1, 10.2, 
 
     const table = await getBlsReferenceTable();
 
-    const semi = lookupSectorReference(table, 'Technology/Semiconductors');
-    const pharma = lookupSectorReference(table, 'Pharmaceutical Manufacturing');
+    const semi = lookupSectorReference(table, 'Semiconductor');
+    const pharma = lookupSectorReference(table, 'Healthcare');
 
     expect(semi?.ppiIndex).toBe(110);
     expect(semi?.ppiYoyPct).toBe(10); // (110-100)/100*100
@@ -75,7 +75,7 @@ describe('getBlsReferenceTable — series → vertical mapping (Req 10.1, 10.2, 
 
     const table = await getBlsReferenceTable();
 
-    expect(Object.keys(table)).toEqual(['Technology/Semiconductors']);
+    expect(Object.keys(table)).toEqual(['Semiconductor']);
   });
 });
 

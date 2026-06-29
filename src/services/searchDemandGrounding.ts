@@ -29,6 +29,7 @@
 
 import { ReportSuggestion } from '../types';
 import type { VerticalCalibration } from './outcomeLedger';
+import type { BlsReferenceTable } from './blsReferenceService';
 import { calculateOpportunityScore } from './scoringEngine';
 import { applyFreshnessScoring } from './freshnessEngine';
 import { applyTitleCoherence } from './titleCoherenceEngine';
@@ -65,6 +66,7 @@ export function hasRealTrend(s: ReportSuggestion): boolean {
 export function groundSearchDemand(
   portfolio: ReportSuggestion[],
   calibration: VerticalCalibration = {},
+  blsReference: BlsReferenceTable = {},
 ): ReportSuggestion[] {
   if (!portfolio?.length) return portfolio;
 
@@ -75,7 +77,7 @@ export function groundSearchDemand(
     if (grounded === s.seoSearchabilityScore) return s; // identical → nothing to redo
 
     let g: ReportSuggestion = { ...s, seoSearchabilityScore: grounded };
-    g = calculateOpportunityScore(g, calibration); // undecayed recompute (grounded seo)
+    g = calculateOpportunityScore(g, calibration, blsReference); // undecayed recompute (grounded seo + BLS nudge)
     g = applyFreshnessScoring(g);                   // single time-decay
     g = applyTitleCoherence(g);                     // re-apply event-subject cap
     return g;

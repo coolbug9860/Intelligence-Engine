@@ -258,25 +258,25 @@ export function lookupSectorReference(
 ): BlsSectorReference | undefined;
 ```
 
-### How `scoringEngine` consumes it (read interface only — no behavior change here)
+### How `scoringEngine` consumes it (ACTIVE — bounded sector-dynamism nudge)
 
-This design **defines the read seam only**. `scoringEngine.calculateOpportunityScore` keeps its current signature and math; the BLS table is threaded in as an **optional** parameter so the engine can read it later without any change to existing callers.
+`scoringEngine.calculateOpportunityScore` reads the BLS table as an optional trailing parameter and, when a row matches the suggestion's vertical, applies a bounded nudge as the final scoring factor.
 
 ```typescript
-// scoringEngine.ts — read interface ONLY (behavior unchanged in this design)
+// scoringEngine.ts — ACTIVE consumption
 export function calculateOpportunityScore(
   suggestion: ReportSuggestion,
   calibration?: VerticalCalibration,
-  blsReference?: BlsReferenceTable   // NEW optional arg — defaults undefined
+  blsReference?: BlsReferenceTable   // optional — defaults undefined
 ): ReportSuggestion {
-  // const ref = blsReference ? lookupSectorReference(blsReference, String(suggestion.vertical)) : undefined;
-  // (Consumption of `ref` is intentionally OUT OF SCOPE for this design.
-  //  Today: if undefined → identical output to current behavior.)
+  // const row = blsReference?.[String(suggestion.vertical)];
+  // const blsMultiplier = row ? 1 + Math.min(0.05, Math.abs(row.ppiYoyPct ?? 0) / 200) : 1.0;
+  // opportunityScore = ... × calibrationMultiplier × blsMultiplier
   ...
 }
 ```
 
-Because the new argument is optional and unread, every existing call site (the orchestrator's `calculateOpportunityScore(processed, calibration)`) compiles and behaves identically. The orchestrator would later pass the table down, but that wiring is explicitly **not** part of this design.
+The nudge is **boost-only**, **symmetric on the sign of `ppiYoyPct`**, and **capped at +5%**; it is exactly neutral (1.0) when the table is omitted/undefined or the vertical has no row. The orchestrator and `server.ts` (`getBlsReferenceTable`) thread the table down, and the search-demand grounding recompute passes it through so grounding never strips the nudge. Coverage is the two PPI series mapped in `blsReferenceService` (`Semiconductor`, `Healthcare`).
 
 ---
 

@@ -31,9 +31,12 @@ import type { BlsReferenceTable } from "./blsReferenceService";
  * Net effect: among credible ideas, the most sellable rank highest; ideas that are
  * commercially strong but poorly evidenced get dampened into MONITOR/PASS territory.
  *
- * @param blsReference Optional, RESERVED macro reference table (Task 6 / Req 4.6, 4.7).
- *        Currently UNREAD — present only so future macro weighting can be wired in
- *        without changing call sites. Passing it does NOT change the output today.
+ * @param blsReference Optional macro reference table (Task 6 / Req 4.6, 4.7), now ACTIVE.
+ *        When a row matches the suggestion's vertical, a bounded "sector-dynamism"
+ *        nudge (Option C) is applied: sharper PPI year-over-year movement → a small,
+ *        boost-only multiplier (max +5%), because a sector in flux is more
+ *        report-worthy. Neutral (1.0) when no row matches. Covers only the PPI series
+ *        mapped in blsReferenceService (Semiconductor, Healthcare) today.
  */
 export function calculateOpportunityScore(
   suggestion: ReportSuggestion,
@@ -113,8 +116,17 @@ export function calculateOpportunityScore(
   // ────────────────────────────────────────────────────────────────────────────
   const calibrationMultiplier = calibration?.[String(suggestion.vertical)] ?? 1.0;
 
+  // BLS sector-dynamism nudge (Option C) — bounded, boost-only, max +5%. A sector
+  // with sharp PPI year-over-year movement (in either direction) is in flux and more
+  // report-worthy. |ppiYoyPct| ≥ 10% saturates the +5% cap; a flat sector stays 1.0.
+  // Neutral when no BLS row matches the vertical (covers Semiconductor, Healthcare today).
+  const blsRow = blsReference?.[String(suggestion.vertical)];
+  const blsMultiplier = blsRow
+    ? 1 + Math.min(0.05, Math.abs(blsRow.ppiYoyPct ?? 0) / 200)
+    : 1.0;
+
   const adjustedScore = Math.round(
-    commercialCore * evidenceGate * riskMultipliers * calibrationMultiplier
+    commercialCore * evidenceGate * riskMultipliers * calibrationMultiplier * blsMultiplier
   );
 
   return {

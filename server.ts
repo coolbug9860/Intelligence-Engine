@@ -29,6 +29,7 @@ import { generateBriefDocxBuffer } from "./src/services/briefExportServer";
 import { enrichWithTrends } from "./src/services/trendsService";
 import { enrichWithWhiteSpaceDetection } from "./src/services/serpOpportunityDetectionService";
 import { groundSearchDemand } from "./src/services/searchDemandGrounding";
+import { getBlsReferenceTable } from "./src/services/blsReferenceService";
 import { classifyPortfolio } from "./src/services/actionClassificationEngine";
 import { runCouncilReview } from "./src/services/councilEngine";
 import {
@@ -788,12 +789,23 @@ app.post("/api/intelligence/run", async (req, res) => {
       console.log('[Calibration] Applying vertical multipliers:', calibration);
     }
 
+    // BLS macro reference: bounded sector-dynamism nudge (Semiconductor, Healthcare
+    // today). Non-fatal — an empty table leaves scoring neutral everywhere.
+    const blsReference = await getBlsReferenceTable().catch((err) => {
+      console.warn('[BLS] Reference fetch failed, scoring without macro nudge:', err);
+      return {};
+    });
+    if (Object.keys(blsReference).length) {
+      console.log('[BLS] Applying sector-dynamism nudge for:', Object.keys(blsReference).join(', '));
+    }
+
     const state = await runIntelligencePipeline(
       pipelineArticles,
       watchlistTitles || [],
       persistedMemory,
       combinedSignals,
-      calibration
+      calibration,
+      blsReference
     );
 
     // Save updated memory back to disk after every successful run
@@ -817,7 +829,7 @@ app.post("/api/intelligence/run", async (req, res) => {
     // signals without a usable trend reading keep their LLM estimate unchanged.
     if (state?.curatedPortfolio?.length) {
       try {
-        state.curatedPortfolio = groundSearchDemand(state.curatedPortfolio, calibration);
+        state.curatedPortfolio = groundSearchDemand(state.curatedPortfolio, calibration, blsReference);
       } catch (err) {
         console.warn('[Grounding] Search-demand grounding failed, keeping LLM scores:', err);
       }
