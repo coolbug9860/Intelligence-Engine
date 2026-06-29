@@ -61,11 +61,14 @@ function computeActionScore(s: ReportSuggestion): number {
     s.whiteSpaceStatus === 'COMMODITISED'     ? -20 :
     0; // UNKNOWN — no adjustment
 
-  // Trend component (0–20 bonus)
+  // Trend component. Trimmed from ±20/+5 to ±10/+3 because real search demand now
+  // also flows into opportunityScore (the actionScore BASE) via search-demand
+  // grounding — so a large bonus here would double-count demand. The DECLINING
+  // hard-veto lives in computeVerdict, independent of this sort bonus.
   const trendBonus =
-    s.trendDirection === 'RISING'   ? 20 :
-    s.trendDirection === 'STABLE'   ? 5  :
-    s.trendDirection === 'DECLINING'? -20 :
+    s.trendDirection === 'RISING'   ? 10 :
+    s.trendDirection === 'STABLE'   ? 3  :
+    s.trendDirection === 'DECLINING'? -10 :
     0; // UNKNOWN
 
   // Execution window component

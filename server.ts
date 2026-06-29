@@ -27,6 +27,7 @@ import type { IngestionRecord } from "./src/services/ingestion/ingestionTypes";
 import { generateBriefDocxBuffer } from "./src/services/briefExportServer";
 import { enrichWithTrends } from "./src/services/trendsService";
 import { enrichWithWhiteSpaceDetection } from "./src/services/serpOpportunityDetectionService";
+import { groundSearchDemand } from "./src/services/searchDemandGrounding";
 import { classifyPortfolio } from "./src/services/actionClassificationEngine";
 import { runCouncilReview } from "./src/services/councilEngine";
 import {
@@ -803,6 +804,18 @@ app.post("/api/intelligence/run", async (req, res) => {
         state.curatedPortfolio = await enrichWithTrends(state.curatedPortfolio);
       } catch (err) {
         console.warn('[Trends] Enrichment failed, continuing without trend data:', err);
+      }
+    }
+
+    // Ground search demand: replace the LLM's seoSearchabilityScore guess with the
+    // real Google Trends level (just attached above) and re-derive opportunityScore,
+    // so the RANKING reflects measured demand — not only the verdict. Pure + non-fatal;
+    // signals without a usable trend reading keep their LLM estimate unchanged.
+    if (state?.curatedPortfolio?.length) {
+      try {
+        state.curatedPortfolio = groundSearchDemand(state.curatedPortfolio, calibration);
+      } catch (err) {
+        console.warn('[Grounding] Search-demand grounding failed, keeping LLM scores:', err);
       }
     }
 
