@@ -57,6 +57,22 @@ const REQUEST_TIMEOUT_MS = 10_000;
 const RESULT_RANGE = '1-25'; // bounded page — quota safety
 const MAX_EXCERPT_LENGTH = 700;
 
+/**
+ * Cross-vertical relevance terms. The OPS search is worldwide (no country clause),
+ * so a date-only query spends its bounded result page on a random global slice.
+ * Intersecting the date window with these Kaiso-sector terms makes the page return
+ * RELEVANT patents instead — and since the US is the largest patent authority,
+ * relevance-targeting naturally surfaces far more US patents without dropping
+ * EP/WO/CN/JP coverage. Kept compact to stay within OPS CQL length limits and a
+ * single request (no extra weekly-budget cost).
+ */
+const RELEVANCE_TERMS: readonly string[] = [
+  'semiconductor', 'battery', 'electric vehicle', 'pharmaceutical', 'biotechnology',
+  'medical device', 'renewable energy', 'hydrogen', 'fintech', 'payment',
+  'aerospace', 'defense', 'supply chain', 'chemical', 'telecommunication',
+  'data center', 'cybersecurity', 'agriculture',
+];
+
 /** Marker/quota file paths resolved at call time so env overrides apply. */
 function cacheFile(): string {
   return process.env.EPO_CACHE_PATH ?? path.join('/tmp', 'epo-cache.json');
@@ -286,6 +302,17 @@ export function buildPublicationDateQuery(now: Date): string {
   return `pd within "${utcYmd(from)} ${utcYmd(now)}"`;
 }
 
+/**
+ * Full biblio CQL: the relevance terms (matched against title/abstract/text via
+ * the OPS `txt` field) intersected with the rolling publication-date window.
+ * Deliberately worldwide — NO country/`pn` clause — so US/EP/WO/CN/JP all remain
+ * eligible and relevance is what surfaces them. Pure + exported for testability.
+ */
+export function buildBiblioQuery(now: Date): string {
+  const terms = RELEVANCE_TERMS.map((t) => `txt = "${t}"`).join(' or ');
+  return `(${terms}) and ${buildPublicationDateQuery(now)}`;
+}
+
 /** Normalize OPS JSON nodes that are "object or array" into an array. */
 function asArray<T>(node: T | T[] | undefined | null): T[] {
   if (node == null) return [];
@@ -479,7 +506,7 @@ export async function fetchEpoPatents(): Promise<IngestionRecord[]> {
   }
 
   try {
-    const q = buildPublicationDateQuery(new Date());
+    const q = buildBiblioQuery(new Date());
     const url = `${EPO_SEARCH_URL}?q=${encodeURIComponent(q)}&Range=${RESULT_RANGE}`;
     const response = await fetchWithTimeout(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },

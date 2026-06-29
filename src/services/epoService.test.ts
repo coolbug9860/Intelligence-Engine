@@ -13,7 +13,7 @@ import fc from 'fast-check';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { fetchEpoPatents, buildPublicationDateQuery } from './epoService';
+import { fetchEpoPatents, buildPublicationDateQuery, buildBiblioQuery } from './epoService';
 
 const AUTH_URL = 'https://ops.epo.org/3.2/auth/accesstoken';
 
@@ -132,6 +132,23 @@ describe('buildPublicationDateQuery — rolling lookback in UTC (Req 9.x)', () =
   it('should build a pd-within clause spanning the default 7-day window in UTC', () => {
     const now = new Date('2026-06-19T08:00:00.000Z');
     expect(buildPublicationDateQuery(now)).toBe('pd within "20260612 20260619"');
+  });
+});
+
+describe('buildBiblioQuery — relevance-targeted worldwide search', () => {
+  it('should intersect relevance terms with the publication-date window', () => {
+    const now = new Date('2026-06-19T08:00:00.000Z');
+    const q = buildBiblioQuery(now);
+    expect(q).toContain('pd within "20260612 20260619"');
+    expect(q).toContain(' and pd within');
+    expect(q.startsWith('(txt = ')).toBe(true);
+  });
+
+  it('should stay worldwide — no country / publication-number restriction', () => {
+    const q = buildBiblioQuery(new Date('2026-06-19T08:00:00.000Z'));
+    // A country clause would exclude US/EP/etc.; relevance-only must avoid it.
+    expect(q).not.toMatch(/\bpn\s*=/i);
+    expect(q.toLowerCase()).not.toContain('country');
   });
 });
 
