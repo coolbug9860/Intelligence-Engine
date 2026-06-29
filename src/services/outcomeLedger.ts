@@ -91,6 +91,36 @@ export interface VerdictInput {
   verdictNote?: string;
 }
 
+/** Payload accepted by seedPendingOutcomes (one per surfaced opportunity). */
+export interface SeedInput {
+  vertical: Vertical;
+  marketKeyword: string;
+  reportTitle: string;
+  strategicPillar?: StrategicPillar;
+  opportunityScoreAtSurface?: number;
+  trendBaseline?: number;
+  trendDirectionPredicted?: TrendDirection;
+}
+
+/**
+ * Stable, deterministic ledger identity for an opportunity.
+ *
+ * The pipeline's `ReportSuggestion.id` is volatile (`sig-<timestamp>-<index>`,
+ * regenerated every run), so the ledger keys on the SEMANTIC identity instead:
+ * vertical + market keyword, slugged. This lets an auto-seeded PENDING row and a
+ * later human verdict — or a re-surfacing of the same opportunity on a future
+ * run — land on the SAME record instead of fragmenting into duplicates.
+ */
+export function stableOpportunityKey(vertical: string, marketKeyword: string): string {
+  const slug = (s: string) =>
+    String(s ?? '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-') // non-alphanumerics → single hyphen
+      .replace(/^-+|-+$/g, '');    // trim leading/trailing hyphens
+  return `${slug(vertical)}::${slug(marketKeyword)}`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
@@ -280,9 +310,12 @@ function persist(
 
 export async function upsertVerdict(input: VerdictInput): Promise<OutcomeRecord[]> {
   const now = new Date().toISOString();
+  // Key on the stable semantic identity, NOT the volatile per-run id, so a human
+  // verdict reconciles with any auto-seeded PENDING row for the same opportunity.
+  const key = stableOpportunityKey(input.vertical, input.marketKeyword);
 
   return persist((records) => {
-    const idx = records.findIndex((r) => r.opportunityId === input.opportunityId);
+    const idx = records.findIndex((r) => r.opportunityId === key);
 
     if (idx >= 0) {
       // Update the verdict on an existing record; preserve surfacedAt, baseline,
@@ -300,7 +333,7 @@ export async function upsertVerdict(input: VerdictInput): Promise<OutcomeRecord[
     // First time we have seen this opportunity — seed a record and capture the
     // trend baseline so the automatic loop can score the direction call later.
     records.push({
-      opportunityId: input.opportunityId,
+      opportunityId: key,
       reportTitle: input.reportTitle,
       vertical: input.vertical,
       marketKeyword: input.marketKeyword,
@@ -315,7 +348,68 @@ export async function upsertVerdict(input: VerdictInput): Promise<OutcomeRecord[
       trendChecks: [],
     });
     return records;
-  }, `chore(ledger): verdict ${input.verdict} for ${input.opportunityId}`);
+  }, `chore(ledger): verdict ${input.verdict} for ${key}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CORE: AUTO-SEED PENDING OUTCOMES (complete, honestly-timed denominator)
+//
+// Called per run for freshly surfaced opportunities (PUBLISH NOW). Seeds a
+// PENDING record for any opportunity not already tracked, keyed by the stable
+// semantic identity. Idempotent: an existing key (PENDING or resolved) is left
+// untouched — verdicts, surfacedAt, and trend history are NEVER reset, so a
+// PENDING can never downgrade a real SOLD/PASSED. All new rows land in a SINGLE
+// write (one commit per run, not one per row), and a pre-check avoids an empty
+// commit when every surfaced opportunity is already tracked.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function seedPendingOutcomes(items: SeedInput[]): Promise<{ seeded: number }> {
+  if (!items?.length) return { seeded: 0 };
+
+  // Dedupe incoming by stable key; drop items lacking semantic identity.
+  const byKey = new Map<string, SeedInput>();
+  for (const it of items) {
+    if (!it?.vertical || !it?.marketKeyword) continue;
+    const key = stableOpportunityKey(it.vertical, it.marketKeyword);
+    if (key === '::') continue; // both fields slugged to empty
+    if (!byKey.has(key)) byKey.set(key, it);
+  }
+  if (byKey.size === 0) return { seeded: 0 };
+
+  // Pre-check (outside the lock): skip persistence entirely — and avoid an empty
+  // commit — when every surfaced opportunity is already in the ledger.
+  const current = await readLedger();
+  const known = new Set(current.map((r) => r.opportunityId));
+  const fresh = [...byKey].filter(([key]) => !known.has(key));
+  if (fresh.length === 0) return { seeded: 0 };
+
+  const now = new Date().toISOString();
+  let seeded = 0;
+
+  await persist((records) => {
+    const existing = new Set(records.map((r) => r.opportunityId));
+    for (const [key, it] of fresh) {
+      if (existing.has(key)) continue; // re-check inside the lock (race-safe)
+      records.push({
+        opportunityId: key,
+        reportTitle: it.reportTitle,
+        vertical: it.vertical,
+        marketKeyword: it.marketKeyword,
+        strategicPillar: it.strategicPillar,
+        verdict: 'PENDING',
+        surfacedAt: now,
+        opportunityScoreAtSurface: it.opportunityScoreAtSurface,
+        trendBaseline: it.trendBaseline,
+        trendDirectionPredicted: it.trendDirectionPredicted,
+        trendChecks: [],
+      });
+      existing.add(key);
+      seeded++;
+    }
+    return records;
+  }, `chore(ledger): seed ${fresh.length} pending outcome(s)`);
+
+  return { seeded };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

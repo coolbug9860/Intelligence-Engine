@@ -32,6 +32,7 @@ import { runCouncilReview } from "./src/services/councilEngine";
 import {
   readLedger,
   upsertVerdict,
+  seedPendingOutcomes,
   runDueTrendChecks,
   computeVerticalCalibration,
 } from "./src/services/outcomeLedger";
@@ -830,6 +831,35 @@ app.post("/api/intelligence/run", async (req, res) => {
         console.log(`[Action] Classification complete — ${publishCount} PUBLISH NOW, ${monitorCount} MONITOR, ${passCount} PASS`);
       } catch (err) {
         console.warn('[Action] Classification failed, continuing without verdicts:', err);
+      }
+    }
+
+    // Auto-seed the ground-truth ledger: record a PENDING outcome for every
+    // freshly surfaced PUBLISH NOW opportunity, keyed by stable semantic identity.
+    // This builds a complete, honestly-timed denominator (surfacedAt = true
+    // surface time) without relying on manual verdict clicks, and lets the trend
+    // checkpoints run on everything we recommended. Idempotent in the ledger, so
+    // re-surfacing never duplicates or downgrades a resolved verdict.
+    // Fire-and-forget + non-fatal so it never delays or breaks the response.
+    if (state?.curatedPortfolio?.length) {
+      const publishNow = state.curatedPortfolio
+        .filter((s: any) => s.actionVerdict === 'PUBLISH NOW')
+        .map((s: any) => ({
+          vertical: s.vertical,
+          marketKeyword: s.marketKeyword,
+          reportTitle: s.reportTitle,
+          strategicPillar: s.strategicPillar,
+          opportunityScoreAtSurface:
+            typeof s.opportunityScore === 'number' ? s.opportunityScore : undefined,
+          trendBaseline: typeof s.trendScore === 'number' ? s.trendScore : undefined,
+          trendDirectionPredicted: s.trendDirection,
+        }));
+      if (publishNow.length) {
+        void seedPendingOutcomes(publishNow)
+          .then(({ seeded }) => {
+            if (seeded) console.log(`[Ledger] Seeded ${seeded} pending outcome(s) for newly surfaced PUBLISH NOW.`);
+          })
+          .catch((err) => console.warn('[Ledger] Pending-outcome seed failed (non-fatal):', err));
       }
     }
 
