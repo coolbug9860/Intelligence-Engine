@@ -324,6 +324,13 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
               </div>
             </div>
             <button 
+              onClick={() => window.open('/?page=how-it-works', '_blank')}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded bg-bg border border-slate-300 text-[10px] font-extrabold text-navy hover:bg-slate-50 shadow-sm transition-all uppercase tracking-tighter"
+            >
+              <Network size={14} className="text-brand-red" />
+              How It Works
+            </button>
+            <button 
               onClick={() => setShowDocumentation(true)}
               className="hidden sm:flex items-center gap-2 px-4 py-2 rounded bg-bg border border-slate-300 text-[10px] font-extrabold text-navy hover:bg-slate-50 shadow-sm transition-all uppercase tracking-tighter"
             >
