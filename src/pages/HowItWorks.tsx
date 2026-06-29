@@ -7,7 +7,7 @@
  *
  * Everything below is driven by the REAL live pipeline (server.ts ingestion fan-out
  * + intelligenceOrchestrator stages + post-pipeline enrichment). Source statuses are
- * honest: LIVE / CONDITIONAL / DORMANT.
+ * honest: LIVE / CONDITIONAL.
  */
 
 import { motion } from 'motion/react';
@@ -16,7 +16,7 @@ import {
   Newspaper, FileText, Landmark, Globe2, Scale, Lightbulb, Search, Activity,
   Gauge, BrainCircuit, ShieldCheck, CheckCircle2, Layers, Copy, Network,
   TrendingUp, Sparkles, ArrowRight, ArrowDown, CircleDollarSign, Eye, XCircle,
-  ChevronRight,
+  ChevronRight, Briefcase,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,8 +72,15 @@ const INPUT_SOURCES: SourceCard[] = [
   {
     icon: <Lightbulb size={22} />,
     name: 'EU EPO Patents',
-    what: 'European Patent Office filings.',
-    tells: 'What is being invented and patented across Europe.',
+    what: 'European Patent Office filings (worldwide coverage, incl. US patents).',
+    tells: 'What is being invented and patented — a leading indicator of R&D investment.',
+    status: 'LIVE',
+  },
+  {
+    icon: <Briefcase size={22} />,
+    name: 'Adzuna (Hiring)',
+    what: 'Active job-vacancy counts by sector from the Adzuna jobs API.',
+    tells: 'Where enterprises are staffing up right now — a leading indicator of where they are about to invest.',
     status: 'LIVE',
   },
 ];
@@ -102,10 +109,10 @@ const SUPPORT_SOURCES: SourceCard[] = [
   },
   {
     icon: <Gauge size={22} />,
-    name: 'BLS (Reference)',
-    what: 'US Bureau of Labor Statistics sector cost data.',
-    tells: 'Connected and ready, but intentionally does not affect any score today.',
-    status: 'DORMANT',
+    name: 'BLS (Macro)',
+    what: 'US Bureau of Labor Statistics producer-price (cost-pressure) data.',
+    tells: 'Sectors in sharp cost flux get a small, capped score boost (Semiconductor & Healthcare today).',
+    status: 'LIVE',
   },
 ];
 
@@ -300,7 +307,7 @@ export default function HowItWorks() {
           </Reveal>
           <Reveal delay={0.15}>
             <div className="flex flex-wrap justify-center gap-6 mt-12 text-center">
-              <Stat number="6" label="Live signal sources" />
+              <Stat number="7" label="Live signal sources" />
               <Stat number="~8–10" label="Opportunities per run" />
               <Stat number="$3k–$5k" label="Value per report" />
             </div>
@@ -330,7 +337,7 @@ export default function HowItWorks() {
         <SectionHeading
           kicker="Step 1 — Inputs"
           title="Where the signals come from"
-          subtitle="Six live sources feed the engine. Each one answers a different question about the market."
+          subtitle="Seven live sources feed the engine. Each one answers a different question about the market."
         />
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {INPUT_SOURCES.map((s, i) => (
@@ -408,7 +415,7 @@ export default function HowItWorks() {
               <ScorePart
                 title="Commercial Value"
                 role="The engine"
-                desc="Will buyers pay? Is the market measurable, searchable, and big enough? This drives the score up."
+                desc="Will buyers pay? Is the market big and segmentable? Search demand here is grounded in real Google Trends data, not just an estimate. This drives the score up."
                 tone="up"
               />
               <ScorePart
@@ -444,8 +451,9 @@ export default function HowItWorks() {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-center text-white/50 text-[11px] mt-3 max-w-2xl mx-auto leading-relaxed">
-              The score is also gently nudged by how past reports in the same industry actually sold —
-              see the learning loop below.
+              The score is also gently nudged by real macro data — how past reports in the same industry
+              actually sold (the learning loop below), and sharp sector cost-pressure from US labor
+              statistics (a small, capped boost for sectors in flux).
             </p>
           </Reveal>
         </div>
@@ -611,7 +619,7 @@ function OutputCard({ icon, title, desc }: { icon: ReactNode; title: string; des
 // The end-to-end flow centerpiece.
 function FlowDiagram() {
   const steps = [
-    { icon: <Globe2 size={20} />, label: '6 Signal Sources', sub: 'News, filings, tenders, patents' },
+    { icon: <Globe2 size={20} />, label: '7 Signal Sources', sub: 'News, filings, tenders, patents, hiring' },
     { icon: <Search size={20} />, label: 'Keyword Filter', sub: 'Keep only relevant signals' },
     { icon: <BrainCircuit size={20} />, label: 'Gemini AI', sub: 'Proposes report topics' },
     { icon: <CircleDollarSign size={20} />, label: 'Scoring Line', sub: 'Rank, dedupe, diversify' },

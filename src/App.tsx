@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 // On-demand modals — lazy-loaded so they stay out of the initial bundle.
-const DocumentationView = lazy(() => import('./components/DocumentationView'));
 const HelpPanel = lazy(() => import('./components/HelpPanel'));
 import { 
   ShieldCheck, 
@@ -76,7 +75,6 @@ export default function App() {
   const [hasStarted, setHasStarted] = useState(false);
 
   const [timeWindow, setTimeWindow] = useState<number>(48);
-  const [showDocumentation, setShowDocumentation] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return sessionStorage.getItem('kaiso_auth_token') !== null;
@@ -329,13 +327,6 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
             >
               <Network size={14} className="text-brand-red" />
               How It Works
-            </button>
-            <button 
-              onClick={() => setShowDocumentation(true)}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded bg-bg border border-slate-300 text-[10px] font-extrabold text-navy hover:bg-slate-50 shadow-sm transition-all uppercase tracking-tighter"
-            >
-              <FileText size={14} className="text-brand-red" />
-              Read About This App
             </button>
             <button 
               onClick={() => setShowHelp(true)}
@@ -756,9 +747,6 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
       </main>
       <Suspense fallback={null}>
         <AnimatePresence mode="wait">
-         {showDocumentation && (
-             <DocumentationView key="documentation-view" onClose={() => setShowDocumentation(false)} />
-          )}
          {showHelp && (
              <HelpPanel key="help-panel" onClose={() => setShowHelp(false)} />
           )}
