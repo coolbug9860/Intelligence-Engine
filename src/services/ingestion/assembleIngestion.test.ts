@@ -62,6 +62,7 @@ function base() {
     ukFtsRecords: [] as IngestionRecord[],
     fedRegRecords: [] as IngestionRecord[],
     epoRecords: [] as IngestionRecord[],
+    adzunaRecords: [] as IngestionRecord[],
     rejectedCount: 0,
     samLookup: vi.fn(alwaysFound),
   };
@@ -90,7 +91,7 @@ describe('assembleCombinedSignals — fan-out resilience (Req 1.2, 1.6)', () => 
     expect(result.combinedSignals).toEqual([]);
   });
 
-  it('should report FULL_SUCCESS when all five external sources return data', async () => {
+  it('should report FULL_SUCCESS when all six external sources return data', async () => {
     const result = await assembleCombinedSignals({
       ...base(),
       edgarSignals: [edgar('E1')],
@@ -98,6 +99,7 @@ describe('assembleCombinedSignals — fan-out resilience (Req 1.2, 1.6)', () => 
       ukFtsRecords: [rec('UK_FTS', 'U1')],
       fedRegRecords: [rec('US_FEDERAL_REGISTER', 'F1')],
       epoRecords: [rec('EU_EPO', 'P1')],
+      adzunaRecords: [rec('ADZUNA_JOBS', 'A1', { content_type: 'hiring_signal' })],
     });
     expect(result.status).toBe('FULL_SUCCESS');
   });

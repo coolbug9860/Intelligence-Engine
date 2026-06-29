@@ -31,6 +31,7 @@ export interface AssembleParams {
   ukFtsRecords: IngestionRecord[];
   fedRegRecords: IngestionRecord[];
   epoRecords: IngestionRecord[];
+  adzunaRecords: IngestionRecord[];
   rejectedCount: number;
   samLookup: (noticeId: string) => Promise<SamSignal | null>;
 }
@@ -41,7 +42,7 @@ export interface AssembledIngestion {
   samSignalCount: number;
   status: IngestionStatus;
   stats: {
-    edgar: number; ted: number; ukFts: number; fedReg: number; epo: number;
+    edgar: number; ted: number; ukFts: number; fedReg: number; epo: number; adzuna: number;
     gatedSignals: number; sam: number; sourcesWithData: number;
   };
 }
@@ -63,7 +64,7 @@ function adaptSam(s: SamSignal): EDGARSignal {
 export async function assembleCombinedSignals(p: AssembleParams): Promise<AssembledIngestion> {
   // Gate + lazy enrichment over the four new IngestionRecord streams.
   const ingestionRecords: IngestionRecord[] = [
-    ...p.tedRecords, ...p.ukFtsRecords, ...p.fedRegRecords, ...p.epoRecords,
+    ...p.tedRecords, ...p.ukFtsRecords, ...p.fedRegRecords, ...p.epoRecords, ...p.adzunaRecords,
   ];
   const gatedRecords = await runKeywordGateAndEnrich(ingestionRecords);
 
@@ -100,7 +101,7 @@ export async function assembleCombinedSignals(p: AssembleParams): Promise<Assemb
   // Status: distinguish full / partial / total failure.
   const externalCounts = [
     p.edgarSignals.length, p.tedRecords.length, p.ukFtsRecords.length,
-    p.fedRegRecords.length, p.epoRecords.length,
+    p.fedRegRecords.length, p.epoRecords.length, p.adzunaRecords.length,
   ];
   const sourcesWithData = externalCounts.filter((n) => n > 0).length;
   let status: IngestionStatus;
@@ -123,6 +124,7 @@ export async function assembleCombinedSignals(p: AssembleParams): Promise<Assemb
       ukFts: p.ukFtsRecords.length,
       fedReg: p.fedRegRecords.length,
       epo: p.epoRecords.length,
+      adzuna: p.adzunaRecords.length,
       gatedSignals: adaptedIngestion.length,
       sam: samSignals.length,
       sourcesWithData,

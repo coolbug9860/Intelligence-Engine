@@ -23,7 +23,8 @@ export type SourceSystem =
   | 'UK_FTS'
   | 'UK_CONTRACTS_FINDER'
   | 'US_FEDERAL_REGISTER'
-  | 'EU_EPO';
+  | 'EU_EPO'
+  | 'ADZUNA_JOBS';
 
 /** Semantic class of an ingested item. */
 export type ContentType =
@@ -31,7 +32,8 @@ export type ContentType =
   | 'regulatory_filing'
   | 'procurement_notice'
   | 'award_notice'
-  | 'epo_patent';
+  | 'epo_patent'
+  | 'hiring_signal';
 
 /**
  * The one DTO every source normalizes into. Exactly 11 fields.

@@ -21,6 +21,7 @@ import { fetchTedNotices } from "./src/services/tedService";
 import { fetchUkFtsNotices } from "./src/services/ukFtsService";
 import { fetchFederalRegisterNotices } from "./src/services/federalRegisterService";
 import { fetchEpoPatents } from "./src/services/epoService";
+import { fetchAdzunaHiringSignals } from "./src/services/adzunaService";
 import { isConfigured as isUpstashConfigured } from "./src/services/upstashKv";
 import { assembleCombinedSignals } from "./src/services/ingestion/assembleIngestion";
 import type { IngestionRecord } from "./src/services/ingestion/ingestionTypes";
@@ -700,6 +701,7 @@ app.post("/api/intelligence/run", async (req, res) => {
       fetchUkFtsNotices(),             // 3 — UK FTS + Contracts Finder
       fetchFederalRegisterNotices(),   // 4 — US Federal Register (SAM watchlist source)
       fetchEpoPatents(),               // 5 — EU EPO patents
+      fetchAdzunaHiringSignals(),      // 6 — Adzuna hiring-momentum signals
     ]);
 
     function settledOr<T>(r: PromiseSettledResult<T>, fallback: T, label: string): T {
@@ -718,6 +720,7 @@ app.post("/api/intelligence/run", async (req, res) => {
     const ukFtsRecords  = settledOr<IngestionRecord[]>(settled[3], [], "UK-FTS");
     const fedRegRecords = settledOr<IngestionRecord[]>(settled[4], [], "US-FederalRegister");
     const epoRecords    = settledOr<IngestionRecord[]>(settled[5], [], "EU-EPO");
+    const adzunaRecords = settledOr<IngestionRecord[]>(settled[6], [], "Adzuna");
 
     // ── Local zero-LLM keyword gate, watchlist hand-off, adapter merge ─────
     // All assembly logic lives in the pure, tested `assembleCombinedSignals`
@@ -734,6 +737,7 @@ app.post("/api/intelligence/run", async (req, res) => {
       ukFtsRecords,
       fedRegRecords,
       epoRecords,
+      adzunaRecords,
       rejectedCount,
       samLookup: fetchSamNoticeById,
     });
@@ -744,7 +748,7 @@ app.post("/api/intelligence/run", async (req, res) => {
       console.error("[Ingestion] TOTAL FAILURE — no source returned data this cycle; pipeline will run empty.");
     } else if (assembled.status === "PARTIAL_SUCCESS") {
       console.warn(
-        `[Ingestion] PARTIAL SUCCESS — ${assembled.stats.sourcesWithData}/5 external sources returned data (${rejectedCount} hard-rejected). Pipeline continues.`
+        `[Ingestion] PARTIAL SUCCESS — ${assembled.stats.sourcesWithData}/6 external sources returned data (${rejectedCount} hard-rejected). Pipeline continues.`
       );
     } else {
       console.log("[Ingestion] FULL SUCCESS — all external sources returned data.");
@@ -758,7 +762,7 @@ app.post("/api/intelligence/run", async (req, res) => {
     const st = assembled.stats;
     console.log(
       `[Pipeline] RSS: ${pipelineArticles.length} | EDGAR: ${st.edgar} | TED: ${st.ted} | ` +
-      `UK-FTS: ${st.ukFts} | FedReg: ${st.fedReg} | EPO: ${st.epo} | ` +
+      `UK-FTS: ${st.ukFts} | FedReg: ${st.fedReg} | EPO: ${st.epo} | Adzuna: ${st.adzuna} | ` +
       `gated→signals: ${st.gatedSignals} | SAM: ${st.sam}`
     );
 
