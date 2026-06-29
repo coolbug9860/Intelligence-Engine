@@ -318,7 +318,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
               <span className="absolute inset-0 rounded-full bg-green-500/20 animate-ping"></span>
               <span className="text-[10px] font-bold text-slate-500">POLLING OK</span>
               <div className="absolute top-10 left-1/2 -translate-x-1/2 w-48 p-3 bg-navy text-white text-[9px] font-bold rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none uppercase tracking-widest">
-                Kaiso Engine is monitoring 42 high-authority XML nodes via 7-tier proxy architecture.
+                Kaiso ingests 7 live intelligence streams: global news, SEC / EU / UK filings, patents, and hiring data.
               </div>
             </div>
             <button 
@@ -396,7 +396,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
               <div className="flex justify-between items-center relative z-10">
                 <div className="flex flex-col gap-0.5">
                   <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted">Live Signal Feed ({filteredSignalFeed.length}/{articles.length})</h2>
-                  <p className="text-[9px] text-slate-600 font-medium uppercase tracking-tight">Real-time monitoring of 40+ global industry nodes</p>
+                  <p className="text-[9px] text-slate-600 font-medium uppercase tracking-tight">Real-time monitoring of 50+ curated global news feeds</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
 <span className="text-[9px] font-bold bg-slate-50 border border-slate-200 rounded px-1 py-0.5">48H WINDOW</span>
@@ -420,7 +420,7 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                   <div className="text-center space-y-3">
                     <div className="text-[12px] font-extrabold uppercase tracking-[0.2em] text-navy">Upstream Signal Void</div>
                     <p className="text-[10px] text-muted leading-relaxed max-w-[280px] mx-auto uppercase font-bold border-t border-slate-100 pt-3">
-                      {errorMessage || "No strategic signals identified in the 12H lookback window."}
+                      {errorMessage || `No strategic signals identified in the ${timeWindow}H lookback window.`}
                     </p>
                   </div>
                   <div className="flex flex-col gap-3 w-full max-w-[200px]">
@@ -510,76 +510,147 @@ const handleSelectSuggestion = (s: ReportSuggestion | null) => {
                 )}
                 
                 {!hasStarted && !loading && (
-                   <div className="flex flex-col items-center justify-center min-h-[500px] text-muted p-12 text-center bg-slate-50/30">
-                    <div className="max-w-5xl w-full space-y-16">
-                      <div className="space-y-6">
-                        <div className="flex justify-center">
-                          <div className="w-20 h-20 bg-navy/5 rounded-full flex items-center justify-center relative">
-                             <Zap size={40} className="text-navy/20" />
-                             <div className="absolute inset-0 border-2 border-dashed border-navy/10 rounded-full animate-spin-slow"></div>
+                  <div className="text-left">
+                    {/* ── CONSTELLATION HERO ── */}
+                    <div className="relative overflow-hidden bg-navy text-white">
+                      <div
+                        className="absolute inset-0 opacity-50"
+                        style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.10) 1px, transparent 0)', backgroundSize: '26px 26px' }}
+                      />
+                      <div className="relative px-6 pt-12 pb-10 text-center">
+                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/15 text-[10px] font-bold tracking-[0.3em] uppercase mb-5 text-white/70">
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent-blue"></span> Intelligence engine · standby
                           </div>
-                        </div>
-                        <div className="max-w-md mx-auto space-y-3">
-                          <h3 className="text-2xl font-serif font-black italic text-navy">
-                            Structural Intelligence Protocol 
-                            <motion.span 
-                              animate={{ opacity: [1, 0, 1] }}
-                              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                              className="ml-2 text-brand-red not-italic font-sans text-sm uppercase tracking-widest font-bold align-middle"
-                            >
-                              [INACTIVE]
-                            </motion.span>
+                          <h3 className="font-serif font-black text-3xl xl:text-4xl leading-tight mb-4 max-w-2xl mx-auto">
+                            Turn the world's business signals into <span className="text-accent-blue">commission-ready</span> report decisions.
                           </h3>
-                          <p className="text-[11px] uppercase font-bold text-slate-600 leading-relaxed tracking-[0.15em] opacity-80 mb-6">
-                            High-Fidelity Synthesis Engine in Standby
+                          <p className="text-white/60 text-[13px] max-w-xl mx-auto leading-relaxed">
+                            Seven live intelligence streams feed one engine. Press start and it returns a ranked shortlist of $3k–$5k report opportunities — each stamped PUBLISH NOW, MONITOR, or PASS.
                           </p>
-                          
-                          <motion.div 
-                            animate={{ y: [0, -4, 0] }}
-                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-full text-[10px] font-bold text-yellow-700 uppercase tracking-widest shadow-sm"
+                          <motion.button
+                            onClick={loadSignals}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            animate={{ boxShadow: ['0 0 0 0 rgba(239,68,68,0.45)', '0 0 0 12px rgba(239,68,68,0)'] }}
+                            transition={{ duration: 2.2, repeat: Infinity }}
+                            className="mt-7 inline-flex items-center gap-2 px-8 py-3 rounded-full bg-brand-red text-white text-xs font-extrabold uppercase tracking-widest"
                           >
-                            <ArrowRight size={14} className="text-yellow-600" />
-                            Click "Start Research" in the control bar to initialize
-                          </motion.div>
-                        </div>
-                      </div>
+                            <RefreshCw size={14} /> Start Research
+                          </motion.button>
+                        </motion.div>
 
-                      {/* KAISO INTELLIGENCE STACK GRID */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+                        <svg viewBox="0 0 800 470" className="w-full max-w-3xl mx-auto mt-4">
+                          <g stroke="#38BDF8" strokeWidth="1" opacity="0.22" fill="none">
+                            <path d="M70,96 L388,330" /><path d="M180,96 L392,330" /><path d="M290,96 L396,330" />
+                            <path d="M400,96 L400,330" /><path d="M510,96 L404,330" /><path d="M620,96 L408,330" /><path d="M730,96 L412,330" />
+                          </g>
+                          <g fill="#38BDF8">
+                            <circle r="3.4"><animateMotion dur="2.6s" begin="0s" repeatCount="indefinite" path="M70,96 L388,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0s" repeatCount="indefinite" /></circle>
+                            <circle r="3.4"><animateMotion dur="2.6s" begin="0.35s" repeatCount="indefinite" path="M180,96 L392,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0.35s" repeatCount="indefinite" /></circle>
+                            <circle r="3.4"><animateMotion dur="2.6s" begin="0.7s" repeatCount="indefinite" path="M290,96 L396,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0.7s" repeatCount="indefinite" /></circle>
+                            <circle r="3.4"><animateMotion dur="2.6s" begin="1.05s" repeatCount="indefinite" path="M400,96 L400,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.05s" repeatCount="indefinite" /></circle>
+                            <circle r="3.4"><animateMotion dur="2.6s" begin="1.4s" repeatCount="indefinite" path="M510,96 L404,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.4s" repeatCount="indefinite" /></circle>
+                            <circle r="3.4"><animateMotion dur="2.6s" begin="1.75s" repeatCount="indefinite" path="M620,96 L408,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.75s" repeatCount="indefinite" /></circle>
+                            <circle r="3.4"><animateMotion dur="2.6s" begin="2.1s" repeatCount="indefinite" path="M730,96 L412,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="2.1s" repeatCount="indefinite" /></circle>
+                          </g>
+                          <g fontFamily="Montserrat" fontWeight="800" fontSize="11" fill="#fff" textAnchor="middle">
+                            <g><circle cx="70" cy="84" r="9" fill="#163273" stroke="#38BDF8" strokeWidth="1.5" /><text x="70" y="58">RSS</text></g>
+                            <g><circle cx="180" cy="84" r="9" fill="#163273" stroke="#38BDF8" strokeWidth="1.5" /><text x="180" y="58">EDGAR</text></g>
+                            <g><circle cx="290" cy="84" r="9" fill="#163273" stroke="#38BDF8" strokeWidth="1.5" /><text x="290" y="58">EU TED</text></g>
+                            <g><circle cx="400" cy="84" r="9" fill="#163273" stroke="#38BDF8" strokeWidth="1.5" /><text x="400" y="58">UK FTS</text></g>
+                            <g><circle cx="510" cy="84" r="9" fill="#163273" stroke="#38BDF8" strokeWidth="1.5" /><text x="510" y="58">FED REG</text></g>
+                            <g><circle cx="620" cy="84" r="9" fill="#163273" stroke="#38BDF8" strokeWidth="1.5" /><text x="620" y="58">EPO</text></g>
+                            <g><circle cx="730" cy="84" r="9" fill="#163273" stroke="#38BDF8" strokeWidth="1.5" /><text x="730" y="58">ADZUNA</text></g>
+                          </g>
+                          <circle cx="400" cy="360" r="58" fill="none" stroke="#38BDF8" strokeWidth="1" opacity="0.25">
+                            <animate attributeName="r" values="50;64;50" dur="3.2s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="0.30;0.05;0.30" dur="3.2s" repeatCount="indefinite" />
+                          </circle>
+                          <circle cx="400" cy="360" r="42" fill="#163273" stroke="#38BDF8" strokeWidth="2" />
+                          <text x="400" y="356" textAnchor="middle" fontFamily="Montserrat" fontWeight="900" fontSize="13" fill="#fff">KAISO</text>
+                          <text x="400" y="372" textAnchor="middle" fontFamily="Montserrat" fontWeight="700" fontSize="8" letterSpacing="2" fill="#38BDF8">ENGINE</text>
+                          <g fontFamily="Montserrat" fontWeight="700" fontSize="9" fill="#94a3b8" textAnchor="middle">
+                            <text x="250" y="440">SAM.gov</text><text x="350" y="455">Google Trends</text>
+                            <text x="470" y="455">Tavily</text><text x="560" y="440">BLS macro</text>
+                          </g>
+                        </svg>
+                        <p className="text-center text-[10px] uppercase tracking-[0.25em] text-white/35 -mt-2">7 live sources feed the core · support layer validates &amp; grounds</p>
+                      </div>
+                    </div>
+
+                    {/* ── SOURCE-CARD CLARITY ── */}
+                    <div className="px-6 py-12 bg-bg border-t border-slate-200">
+                      <div className="text-center mb-8">
+                        <div className="text-[11px] font-extrabold tracking-[0.3em] uppercase text-brand-red mb-1">Live intelligence streams</div>
+                        <h3 className="font-serif font-black text-2xl text-navy">What each source tells the engine</h3>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                         {[
-                          { title: 'Forecast', desc: 'Synthesizes cross-pillar signals into high-fidelity structural market predictions.', icon: TrendingUp },
-                          { title: 'Evolution', desc: 'Tracks historical trajectory and velocity of emerging thematic clusters.', icon: BarChart },
-                          { title: 'Priority', desc: 'Transmutes intelligence outputs into executive strategic prioritization.', icon: Gavel },
-                          { title: 'Reasoning', desc: 'Applies asymmetric logic to resolve contradictions across global data streams.', icon: Cpu },
-                          { title: 'Taxonomy', desc: 'Normalizes diverse signal artifacts into a coherent structural framework.', icon: Layers },
-                          { title: 'Graph', desc: 'Maps the multi-dimensional propagation pathways between intelligence nodes.', icon: Network },
-                          { title: 'Scoring', desc: 'Evaluates signal integrity through multi-factor authority and diversity metrics.', icon: Zap },
-                          { title: 'Validation', desc: 'Hardens intelligence outputs against structural bias and factual noise.', icon: Shield },
-                        ].map((engine, i) => (
-                          <div key={`engine-${engine.title}-${i}`} className="group p-5 bg-white border border-slate-200 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-navy/20 hover:shadow-xl hover:shadow-navy/5 transition-all">
-                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center mb-4 group-hover:bg-navy group-hover:text-white transition-colors">
-                              <engine.icon size={18} className="text-navy group-hover:text-white" />
+                          ['RSS + NewsAPI', '54 curated B2B news feeds + news search', 'What the market is talking about now'],
+                          ['SEC EDGAR', 'US public-company filings (10-K/Q/8-K)', 'What big US firms tell regulators'],
+                          ['EU TED', 'EU procurement & tender notices', 'What European governments will buy'],
+                          ['UK FTS + Contracts Finder', 'UK government contract notices', 'What the UK public sector will buy'],
+                          ['US Federal Register', 'US regulatory notices', 'What new US rules are coming'],
+                          ['EU EPO Patents', 'Worldwide patent filings (incl. US)', 'What is being invented & patented'],
+                          ['Adzuna (Hiring)', 'Active job-vacancy counts by sector', 'Where enterprises are staffing up'],
+                        ].map(([name, what, tells]) => (
+                          <div key={name} className="bg-white border border-slate-200 rounded-xl p-5 hover:border-brand-blue/40 hover:shadow-md transition-all">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-extrabold text-navy text-sm">{name}</h4>
+                              <span className="text-[8px] font-extrabold tracking-widest px-2 py-0.5 rounded-full border bg-green-100 text-green-700 border-green-300">LIVE</span>
                             </div>
-                            <h4 className="text-[11px] font-black uppercase tracking-widest text-navy mb-2">{engine.title} Engine</h4>
-                            <p className="text-[10px] leading-relaxed text-slate-500 font-medium tracking-tight">{engine.desc}</p>
+                            <p className="text-[12px] text-slate-600 leading-snug mb-3">{what}</p>
+                            <div className="pt-2 border-t border-slate-100">
+                              <span className="text-[9px] font-bold uppercase tracking-widest text-muted">Tells us</span>
+                              <p className="text-[12px] text-navy font-medium">{tells}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-center text-[11px] text-muted mt-5 mb-12 max-w-2xl mx-auto">+ SAM.gov (on-demand) · Google Trends · Tavily whitespace · BLS macro — the support layer that validates &amp; grounds every result.</p>
+
+                      <div className="text-center mb-6">
+                        <div className="text-[11px] font-extrabold tracking-[0.3em] uppercase text-brand-red mb-1">What happens on start</div>
+                        <h3 className="font-serif font-black text-2xl text-navy">From signal to shortlist</h3>
+                      </div>
+                      <div className="flex flex-col md:flex-row items-stretch gap-2 mb-12">
+                        {[
+                          ['Signals in', '7 sources, keyword-gated'],
+                          ['Gemini reads', 'Proposes report topics'],
+                          ['Scored', 'Commercial × evidence × risk'],
+                          ['Verdict', 'Publish / Monitor / Pass'],
+                          ['Ranked shortlist', '~8–10 opportunities'],
+                        ].map(([title, sub], i, arr) => (
+                          <div key={title} className="flex-1 flex items-stretch gap-2">
+                            <div className={`flex-1 rounded-xl p-4 text-center ${i === arr.length - 1 ? 'bg-brand-red text-white' : 'bg-white border border-slate-200 text-navy'}`}>
+                              <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center font-black text-sm mb-2 ${i === arr.length - 1 ? 'bg-white text-brand-red' : 'bg-navy text-white'}`}>{i + 1}</div>
+                              <div className="font-extrabold text-[12px]">{title}</div>
+                              <div className={`text-[10px] mt-1 leading-tight ${i === arr.length - 1 ? 'text-white/80' : 'text-muted'}`}>{sub}</div>
+                            </div>
+                            {i < arr.length - 1 && <div className="hidden md:flex items-center text-brand-red font-black px-1">›</div>}
                           </div>
                         ))}
                       </div>
 
-                      <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-center gap-12 grayscale opacity-40">
-                         <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-navy">NODE COVERAGE</span>
-                            <span className="text-sm font-bold text-navy">40+ GLOBAL SOURCES</span>
-                         </div>
-                         <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-navy">MAPPING CORE</span>
-                            <span className="text-sm font-bold text-navy">GEMINI FLASH</span>
-                         </div>
-                         <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-navy">ARCHITECTURE</span>
-                            <span className="text-sm font-bold text-navy">ASYMMETRIC LOGIC</span>
-                         </div>
+                      <div className="bg-navy rounded-2xl px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                        {[
+                          ['7', 'Live sources'],
+                          ['~8–10', 'Opportunities / run'],
+                          ['Learns', 'From real outcomes'],
+                          ['Grounded', 'In Google Trends'],
+                        ].map(([n, l]) => (
+                          <div key={l}>
+                            <div className="font-serif font-black text-3xl text-accent-blue">{n}</div>
+                            <div className="text-[9px] uppercase tracking-widest text-white/50 mt-1">{l}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="text-center mt-8">
+                        <button onClick={() => window.open('/?page=how-it-works', '_blank')} className="text-[11px] font-extrabold uppercase tracking-widest text-navy hover:text-brand-red transition-colors">
+                          See the full walkthrough → How It Works
+                        </button>
                       </div>
                     </div>
                   </div>

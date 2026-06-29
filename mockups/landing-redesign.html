@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KAISO — Landing Redesign Mock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,500..900;1,600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: '#0A1E3C', 'brand-blue': '#163273', 'brand-red': '#EF4444',
+            'accent-blue': '#38BDF8', bg: '#F8FAFC', ink: '#0F172A', muted: '#64748B',
+          },
+          fontFamily: {
+            sans: ['Montserrat', 'system-ui', 'sans-serif'],
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Montserrat', system-ui, sans-serif; }
+    .font-serif { font-family: 'Playfair Display', Georgia, serif; }
+
+    @keyframes pulseGlow { 0%,100% { opacity:.35; transform:scale(1); } 50% { opacity:.7; transform:scale(1.08); } }
+    @keyframes corePulse { 0%,100% { box-shadow:0 0 0 0 rgba(56,189,248,.35), 0 0 60px 10px rgba(56,189,248,.18); } 50% { box-shadow:0 0 0 14px rgba(56,189,248,0), 0 0 90px 20px rgba(56,189,248,.30); } }
+    @keyframes ctaPulse { 0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,.45); } 50% { box-shadow:0 0 0 12px rgba(239,68,68,0); } }
+    @keyframes floatY { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+    @keyframes dash { to { stroke-dashoffset:-200; } }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .cta-pulse { animation: ctaPulse 2.2s infinite; }
+    .core-pulse { animation: corePulse 3.2s ease-in-out infinite; }
+    .node-float { animation: floatY 5s ease-in-out infinite; }
+    .grid-dots { background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.10) 1px, transparent 0); background-size: 26px 26px; }
+
+    .seg-btn { transition: all .15s ease; }
+    .seg-btn[data-active="true"] { background:#0A1E3C; color:#fff; }
+    .seg-btn[data-active="false"] { background:#fff; color:#0A1E3C; }
+    .hidden-view { display:none; }
+  </style>
+</head>
+<body class="bg-bg text-ink">
+
+  <!-- MOCK TOGGLE (not part of the app — just to compare directions) -->
+  <div class="sticky top-0 z-50 bg-white border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between">
+      <span class="text-[10px] font-extrabold tracking-[0.25em] uppercase text-muted">KAISO · Landing Redesign Mock</span>
+      <div class="flex items-center gap-1 p-1 bg-slate-100 rounded-full border border-slate-200">
+        <button class="seg-btn px-4 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest" data-view="C" data-active="true">C · Blend ★</button>
+        <button class="seg-btn px-4 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest" data-view="A" data-active="false">A · Constellation</button>
+        <button class="seg-btn px-4 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest" data-view="B" data-active="false">B · Console</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAUX APP HEADER (for context; matches the real app bar) -->
+  <header class="h-[60px] bg-white border-b border-slate-300 flex items-center justify-between px-6 shadow-sm">
+    <div class="flex items-center gap-4">
+      <div class="w-7 h-7 bg-brand-red rounded-sm flex items-center justify-center font-black text-white">K</div>
+      <h1 class="text-lg flex items-baseline">
+        <span class="font-black text-brand-blue uppercase tracking-tight">KAISO</span>
+        <span class="text-muted font-medium ml-2 text-[10px] tracking-widest uppercase opacity-70 self-center">Intelligence OS</span>
+      </h1>
+      <span class="hidden lg:inline text-[10px] font-mono text-muted border-l-2 border-brand-red pl-4">SYST_ID: KR-842 // SIGNALS: 0 ACTIVE // WINDOW: 48H</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-[10px] font-bold text-slate-500"><span class="w-2 h-2 bg-green-500 rounded-full"></span>POLLING OK</span>
+      <button class="hidden sm:flex items-center gap-2 px-4 py-2 rounded bg-bg border border-slate-300 text-[10px] font-extrabold text-navy uppercase tracking-tighter">How It Works</button>
+      <button class="hidden sm:flex items-center gap-2 px-4 py-2 rounded bg-bg border border-slate-300 text-[10px] font-extrabold text-navy uppercase tracking-tighter">Help</button>
+      <button class="flex items-center gap-2 px-6 py-2 rounded text-xs font-bold bg-brand-red text-white cta-pulse">▶ START RESEARCH</button>
+    </div>
+  </header>
+
+  <!-- ════════════════ DIRECTION A — LIVING CONSTELLATION ════════════════ -->
+  <main id="view-A" class="hidden-view relative overflow-hidden bg-navy text-white">
+    <div class="absolute inset-0 grid-dots opacity-60"></div>
+    <div class="relative max-w-6xl mx-auto px-6 py-16">
+
+      <!-- hero -->
+      <div class="text-center max-w-3xl mx-auto mb-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/15 text-[10px] font-bold tracking-[0.3em] uppercase mb-5 text-white/70">
+          <span class="w-1.5 h-1.5 rounded-full bg-accent-blue"></span> Intelligence engine · standby
+        </div>
+        <h2 class="font-serif font-black text-4xl md:text-5xl leading-tight mb-5">
+          Turn the world's business signals into<br><span class="text-accent-blue">commission-ready</span> report decisions.
+        </h2>
+        <p class="text-white/60 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+          Seven live intelligence streams feed one engine. Press start and it returns a ranked shortlist of
+          $3k–$5k report opportunities — each stamped PUBLISH&nbsp;NOW, MONITOR, or PASS.
+        </p>
+        <button class="mt-7 inline-flex items-center gap-2 px-8 py-3 rounded-full bg-brand-red text-white text-xs font-extrabold uppercase tracking-widest cta-pulse">▶ Start Research</button>
+      </div>
+
+      <!-- CONSTELLATION -->
+      <svg viewBox="0 0 800 470" class="w-full max-w-4xl mx-auto" style="filter: drop-shadow(0 0 1px rgba(56,189,248,.2));">
+        <!-- converging lines -->
+        <g stroke="#38BDF8" stroke-width="1" opacity="0.22" fill="none">
+          <path d="M70,96 L388,330" /><path d="M180,96 L392,330" /><path d="M290,96 L396,330" />
+          <path d="M400,96 L400,330" /><path d="M510,96 L404,330" /><path d="M620,96 L408,330" /><path d="M730,96 L412,330" />
+        </g>
+        <!-- flowing energy particles -->
+        <g fill="#38BDF8">
+          <circle r="3.4"><animateMotion dur="2.6s" begin="0s"   repeatCount="indefinite" path="M70,96 L388,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0s" repeatCount="indefinite"/></circle>
+          <circle r="3.4"><animateMotion dur="2.6s" begin="0.35s" repeatCount="indefinite" path="M180,96 L392,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0.35s" repeatCount="indefinite"/></circle>
+          <circle r="3.4"><animateMotion dur="2.6s" begin="0.7s"  repeatCount="indefinite" path="M290,96 L396,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0.7s" repeatCount="indefinite"/></circle>
+          <circle r="3.4"><animateMotion dur="2.6s" begin="1.05s" repeatCount="indefinite" path="M400,96 L400,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.05s" repeatCount="indefinite"/></circle>
+          <circle r="3.4"><animateMotion dur="2.6s" begin="1.4s"  repeatCount="indefinite" path="M510,96 L404,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.4s" repeatCount="indefinite"/></circle>
+          <circle r="3.4"><animateMotion dur="2.6s" begin="1.75s" repeatCount="indefinite" path="M620,96 L408,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.75s" repeatCount="indefinite"/></circle>
+          <circle r="3.4"><animateMotion dur="2.6s" begin="2.1s"  repeatCount="indefinite" path="M730,96 L412,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="2.1s" repeatCount="indefinite"/></circle>
+        </g>
+        <!-- source nodes -->
+        <g font-family="Montserrat" font-weight="800" font-size="11" fill="#fff" text-anchor="middle">
+          <g><circle cx="70"  cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="70"  y="58">RSS</text></g>
+          <g><circle cx="180" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="180" y="58">EDGAR</text></g>
+          <g><circle cx="290" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="290" y="58">EU TED</text></g>
+          <g><circle cx="400" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="400" y="58">UK FTS</text></g>
+          <g><circle cx="510" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="510" y="58">FED REG</text></g>
+          <g><circle cx="620" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="620" y="58">EPO</text></g>
+          <g><circle cx="730" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="730" y="58">ADZUNA</text></g>
+        </g>
+        <!-- core -->
+        <circle cx="400" cy="360" r="58" fill="none" stroke="#38BDF8" stroke-width="1" opacity="0.25">
+          <animate attributeName="r" values="50;64;50" dur="3.2s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.30;0.05;0.30" dur="3.2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="400" cy="360" r="42" fill="#163273" stroke="#38BDF8" stroke-width="2"/>
+        <text x="400" y="356" text-anchor="middle" font-family="Montserrat" font-weight="900" font-size="13" fill="#fff">KAISO</text>
+        <text x="400" y="372" text-anchor="middle" font-family="Montserrat" font-weight="700" font-size="8" letter-spacing="2" fill="#38BDF8">ENGINE</text>
+        <!-- support ring labels -->
+        <g font-family="Montserrat" font-weight="700" font-size="9" fill="#94a3b8" text-anchor="middle">
+          <text x="250" y="440">SAM.gov</text><text x="350" y="455">Google Trends</text>
+          <text x="470" y="455">Tavily</text><text x="560" y="440">BLS macro</text>
+        </g>
+      </svg>
+
+      <p class="text-center text-[10px] uppercase tracking-[0.25em] text-white/35 -mt-2 mb-12">7 live sources feed the core · support layer validates &amp; grounds</p>
+
+      <!-- mini pipeline -->
+      <div class="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-2 mb-10">
+        <div class="text-center bg-white/5 border border-white/10 rounded-lg py-4 px-2"><div class="text-accent-blue text-lg font-black">1</div><div class="text-[10px] uppercase tracking-widest text-white/70 mt-1">Signals in</div></div>
+        <div class="text-center bg-white/5 border border-white/10 rounded-lg py-4 px-2"><div class="text-accent-blue text-lg font-black">2</div><div class="text-[10px] uppercase tracking-widest text-white/70 mt-1">Gemini reads</div></div>
+        <div class="text-center bg-white/5 border border-white/10 rounded-lg py-4 px-2"><div class="text-accent-blue text-lg font-black">3</div><div class="text-[10px] uppercase tracking-widest text-white/70 mt-1">Scored</div></div>
+        <div class="text-center bg-white/5 border border-white/10 rounded-lg py-4 px-2"><div class="text-accent-blue text-lg font-black">4</div><div class="text-[10px] uppercase tracking-widest text-white/70 mt-1">Verdict</div></div>
+        <div class="text-center bg-brand-red/90 rounded-lg py-4 px-2 col-span-2 md:col-span-1"><div class="text-white text-lg font-black">5</div><div class="text-[10px] uppercase tracking-widest text-white/90 mt-1">Ranked shortlist</div></div>
+      </div>
+
+      <!-- stats -->
+      <div class="flex flex-wrap justify-center gap-x-12 gap-y-4 border-t border-white/10 pt-8">
+        <div class="text-center"><div class="font-serif font-black text-2xl text-accent-blue">7</div><div class="text-[9px] uppercase tracking-widest text-white/50">Live sources</div></div>
+        <div class="text-center"><div class="font-serif font-black text-2xl text-accent-blue">~8–10</div><div class="text-[9px] uppercase tracking-widest text-white/50">Opportunities / run</div></div>
+        <div class="text-center"><div class="font-serif font-black text-2xl text-accent-blue">Learns</div><div class="text-[9px] uppercase tracking-widest text-white/50">From real outcomes</div></div>
+        <div class="text-center"><div class="font-serif font-black text-2xl text-accent-blue">Grounded</div><div class="text-[9px] uppercase tracking-widest text-white/50">In Google Trends</div></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ════════════════ DIRECTION B — COMMAND CONSOLE ════════════════ -->
+  <main id="view-B" class="hidden-view bg-bg">
+    <!-- hero -->
+    <section class="bg-white border-b border-slate-200">
+      <div class="max-w-5xl mx-auto px-6 py-16 text-center">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 text-[10px] font-bold tracking-[0.3em] uppercase mb-5 text-muted">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand-red"></span> Engine ready · awaiting run
+        </div>
+        <h2 class="font-serif font-black text-4xl md:text-5xl leading-tight text-navy mb-4">
+          The market-intelligence command console.
+        </h2>
+        <p class="text-muted text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+          Seven live sources, one decision engine. Press start to synthesize a ranked shortlist of
+          $3k–$5k report opportunities — scored and stamped PUBLISH&nbsp;NOW / MONITOR / PASS.
+        </p>
+        <button class="mt-7 inline-flex items-center gap-2 px-8 py-3 rounded-full bg-brand-red text-white text-xs font-extrabold uppercase tracking-widest cta-pulse">▶ Start Research</button>
+      </div>
+    </section>
+
+    <div class="max-w-6xl mx-auto px-6 py-14">
+      <!-- source grid -->
+      <div class="text-center mb-8">
+        <div class="text-[11px] font-extrabold tracking-[0.3em] uppercase text-brand-red mb-1">Live intelligence streams</div>
+        <h3 class="font-serif font-black text-2xl text-navy">Seven sources feeding the engine</h3>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4" id="srcGrid"></div>
+      <p class="text-center text-[11px] text-muted mb-14">+ SAM.gov (on-demand) · Google Trends · Tavily whitespace · BLS macro — the support layer that validates &amp; grounds every result.</p>
+
+      <!-- pipeline strip -->
+      <div class="text-center mb-6">
+        <div class="text-[11px] font-extrabold tracking-[0.3em] uppercase text-brand-red mb-1">What happens on start</div>
+        <h3 class="font-serif font-black text-2xl text-navy">From signal to shortlist</h3>
+      </div>
+      <div class="flex flex-col md:flex-row items-stretch gap-2 mb-14" id="pipeStrip"></div>
+
+      <!-- stat band -->
+      <div class="bg-navy rounded-2xl px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        <div><div class="font-serif font-black text-3xl text-accent-blue">7</div><div class="text-[9px] uppercase tracking-widest text-white/50 mt-1">Live sources</div></div>
+        <div><div class="font-serif font-black text-3xl text-accent-blue">~8–10</div><div class="text-[9px] uppercase tracking-widest text-white/50 mt-1">Opportunities / run</div></div>
+        <div><div class="font-serif font-black text-3xl text-accent-blue">Learns</div><div class="text-[9px] uppercase tracking-widest text-white/50 mt-1">From real outcomes</div></div>
+        <div><div class="font-serif font-black text-3xl text-accent-blue">Grounded</div><div class="text-[9px] uppercase tracking-widest text-white/50 mt-1">In Google Trends</div></div>
+      </div>
+
+      <div class="text-center mt-8">
+        <a href="#" class="text-[11px] font-extrabold uppercase tracking-widest text-navy hover:text-brand-red">See the full walkthrough → How It Works</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- ════════════════ DIRECTION C — BLEND (constellation hero + source-card clarity) ════════════════ -->
+  <main id="view-C">
+    <!-- constellation hero (navy) -->
+    <section class="relative overflow-hidden bg-navy text-white">
+      <div class="absolute inset-0 grid-dots opacity-60"></div>
+      <div class="relative max-w-6xl mx-auto px-6 pt-16 pb-12">
+        <div class="text-center max-w-3xl mx-auto mb-2">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/15 text-[10px] font-bold tracking-[0.3em] uppercase mb-5 text-white/70">
+            <span class="w-1.5 h-1.5 rounded-full bg-accent-blue"></span> Intelligence engine · standby
+          </div>
+          <h2 class="font-serif font-black text-4xl md:text-5xl leading-tight mb-5">
+            Turn the world's business signals into<br><span class="text-accent-blue">commission-ready</span> report decisions.
+          </h2>
+          <p class="text-white/60 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+            Seven live intelligence streams feed one engine. Press start and it returns a ranked shortlist of
+            $3k–$5k report opportunities — each stamped PUBLISH&nbsp;NOW, MONITOR, or PASS.
+          </p>
+          <button class="mt-7 inline-flex items-center gap-2 px-8 py-3 rounded-full bg-brand-red text-white text-xs font-extrabold uppercase tracking-widest cta-pulse">▶ Start Research</button>
+        </div>
+
+        <svg viewBox="0 0 800 470" class="w-full max-w-4xl mx-auto">
+          <g stroke="#38BDF8" stroke-width="1" opacity="0.22" fill="none">
+            <path d="M70,96 L388,330" /><path d="M180,96 L392,330" /><path d="M290,96 L396,330" />
+            <path d="M400,96 L400,330" /><path d="M510,96 L404,330" /><path d="M620,96 L408,330" /><path d="M730,96 L412,330" />
+          </g>
+          <g fill="#38BDF8">
+            <circle r="3.4"><animateMotion dur="2.6s" begin="0s"   repeatCount="indefinite" path="M70,96 L388,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0s" repeatCount="indefinite"/></circle>
+            <circle r="3.4"><animateMotion dur="2.6s" begin="0.35s" repeatCount="indefinite" path="M180,96 L392,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0.35s" repeatCount="indefinite"/></circle>
+            <circle r="3.4"><animateMotion dur="2.6s" begin="0.7s"  repeatCount="indefinite" path="M290,96 L396,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0.7s" repeatCount="indefinite"/></circle>
+            <circle r="3.4"><animateMotion dur="2.6s" begin="1.05s" repeatCount="indefinite" path="M400,96 L400,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.05s" repeatCount="indefinite"/></circle>
+            <circle r="3.4"><animateMotion dur="2.6s" begin="1.4s"  repeatCount="indefinite" path="M510,96 L404,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.4s" repeatCount="indefinite"/></circle>
+            <circle r="3.4"><animateMotion dur="2.6s" begin="1.75s" repeatCount="indefinite" path="M620,96 L408,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.75s" repeatCount="indefinite"/></circle>
+            <circle r="3.4"><animateMotion dur="2.6s" begin="2.1s"  repeatCount="indefinite" path="M730,96 L412,330" /><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="2.1s" repeatCount="indefinite"/></circle>
+          </g>
+          <g font-family="Montserrat" font-weight="800" font-size="11" fill="#fff" text-anchor="middle">
+            <g><circle cx="70"  cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="70"  y="58">RSS</text></g>
+            <g><circle cx="180" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="180" y="58">EDGAR</text></g>
+            <g><circle cx="290" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="290" y="58">EU TED</text></g>
+            <g><circle cx="400" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="400" y="58">UK FTS</text></g>
+            <g><circle cx="510" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="510" y="58">FED REG</text></g>
+            <g><circle cx="620" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="620" y="58">EPO</text></g>
+            <g><circle cx="730" cy="84" r="9" fill="#163273" stroke="#38BDF8" stroke-width="1.5"/><text x="730" y="58">ADZUNA</text></g>
+          </g>
+          <circle cx="400" cy="360" r="58" fill="none" stroke="#38BDF8" stroke-width="1" opacity="0.25">
+            <animate attributeName="r" values="50;64;50" dur="3.2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.30;0.05;0.30" dur="3.2s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="400" cy="360" r="42" fill="#163273" stroke="#38BDF8" stroke-width="2"/>
+          <text x="400" y="356" text-anchor="middle" font-family="Montserrat" font-weight="900" font-size="13" fill="#fff">KAISO</text>
+          <text x="400" y="372" text-anchor="middle" font-family="Montserrat" font-weight="700" font-size="8" letter-spacing="2" fill="#38BDF8">ENGINE</text>
+          <g font-family="Montserrat" font-weight="700" font-size="9" fill="#94a3b8" text-anchor="middle">
+            <text x="250" y="440">SAM.gov</text><text x="350" y="455">Google Trends</text>
+            <text x="470" y="455">Tavily</text><text x="560" y="440">BLS macro</text>
+          </g>
+        </svg>
+        <p class="text-center text-[10px] uppercase tracking-[0.25em] text-white/35 -mt-2">7 live sources feed the core · support layer validates &amp; grounds</p>
+      </div>
+    </section>
+
+    <!-- source-card clarity (light) -->
+    <section class="bg-bg border-t border-slate-200">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="text-center mb-8">
+          <div class="text-[11px] font-extrabold tracking-[0.3em] uppercase text-brand-red mb-1">Live intelligence streams</div>
+          <h3 class="font-serif font-black text-2xl text-navy">What each source tells the engine</h3>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4" id="srcGridC"></div>
+        <p class="text-center text-[11px] text-muted mb-14">+ SAM.gov (on-demand) · Google Trends · Tavily whitespace · BLS macro — the support layer that validates &amp; grounds every result.</p>
+
+        <div class="text-center mb-6">
+          <div class="text-[11px] font-extrabold tracking-[0.3em] uppercase text-brand-red mb-1">What happens on start</div>
+          <h3 class="font-serif font-black text-2xl text-navy">From signal to shortlist</h3>
+        </div>
+        <div class="flex flex-col md:flex-row items-stretch gap-2 mb-14" id="pipeStripC"></div>
+
+        <div class="bg-navy rounded-2xl px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div><div class="font-serif font-black text-3xl text-accent-blue">7</div><div class="text-[9px] uppercase tracking-widest text-white/50 mt-1">Live sources</div></div>
+          <div><div class="font-serif font-black text-3xl text-accent-blue">~8–10</div><div class="text-[9px] uppercase tracking-widest text-white/50 mt-1">Opportunities / run</div></div>
+          <div><div class="font-serif font-black text-3xl text-accent-blue">Learns</div><div class="text-[9px] uppercase tracking-widest text-white/50 mt-1">From real outcomes</div></div>
+          <div><div class="font-serif font-black text-3xl text-accent-blue">Grounded</div><div class="text-[9px] uppercase tracking-widest text-white/50 mt-1">In Google Trends</div></div>
+        </div>
+        <div class="text-center mt-8">
+          <a href="#" class="text-[11px] font-extrabold uppercase tracking-widest text-navy hover:text-brand-red">See the full walkthrough → How It Works</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // direction toggle
+    const views = { A: document.getElementById('view-A'), B: document.getElementById('view-B'), C: document.getElementById('view-C') };
+    document.querySelectorAll('.seg-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const v = btn.dataset.view;
+        document.querySelectorAll('.seg-btn').forEach((b) => b.dataset.active = String(b.dataset.view === v));
+        Object.keys(views).forEach((k) => views[k].classList.toggle('hidden-view', k !== v));
+        window.scrollTo({ top: 0 });
+      });
+    });
+
+    // Direction B — source cards
+    const SOURCES = [
+      ['RSS + NewsAPI', '54 curated B2B news feeds + news search', 'What the market is talking about now'],
+      ['SEC EDGAR', 'US public-company filings (10-K/Q/8-K)', 'What big US firms tell regulators'],
+      ['EU TED', 'EU procurement & tender notices', 'What European governments will buy'],
+      ['UK FTS + Contracts Finder', 'UK government contract notices', 'What the UK public sector will buy'],
+      ['US Federal Register', 'US regulatory notices', 'What new US rules are coming'],
+      ['EU EPO Patents', 'Worldwide patent filings (incl. US)', 'What is being invented & patented'],
+      ['Adzuna (Hiring)', 'Active job-vacancy counts by sector', 'Where enterprises are staffing up'],
+    ];
+    const srcHtml = SOURCES.map(([n, w, t]) => `
+      <div class="bg-white border border-slate-200 rounded-xl p-5 hover:border-brand-blue/40 hover:shadow-md transition-all">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="font-extrabold text-navy text-sm">${n}</h4>
+          <span class="text-[8px] font-extrabold tracking-widest px-2 py-0.5 rounded-full border bg-green-100 text-green-700 border-green-300">LIVE</span>
+        </div>
+        <p class="text-[12px] text-slate-600 leading-snug mb-3">${w}</p>
+        <div class="pt-2 border-t border-slate-100"><span class="text-[9px] font-bold uppercase tracking-widest text-muted">Tells us</span><p class="text-[12px] text-navy font-medium">${t}</p></div>
+      </div>`).join('');
+    document.getElementById('srcGrid').innerHTML = srcHtml;
+    document.getElementById('srcGridC').innerHTML = srcHtml;
+
+    // Direction B — pipeline strip
+    const STEPS = [['Signals in','7 sources, keyword-gated'],['Gemini reads','Proposes report topics'],['Scored','Commercial × evidence × risk'],['Verdict','Publish / Monitor / Pass'],['Ranked shortlist','~8–10 opportunities']];
+    const pipeHtml = STEPS.map(([t, s], i) => `
+      <div class="flex-1 ${i === STEPS.length-1 ? 'bg-brand-red text-white' : 'bg-white border border-slate-200 text-navy'} rounded-xl p-4 text-center">
+        <div class="w-8 h-8 mx-auto rounded-full ${i === STEPS.length-1 ? 'bg-white text-brand-red' : 'bg-navy text-white'} flex items-center justify-center font-black text-sm mb-2">${i+1}</div>
+        <div class="font-extrabold text-[12px]">${t}</div>
+        <div class="text-[10px] ${i === STEPS.length-1 ? 'text-white/80' : 'text-muted'} mt-1 leading-tight">${s}</div>
+      </div>${i < STEPS.length-1 ? '<div class="hidden md:flex items-center text-brand-red font-black px-1">›</div>' : ''}`).join('');
+    document.getElementById('pipeStrip').innerHTML = pipeHtml;
+    document.getElementById('pipeStripC').innerHTML = pipeHtml;
+  </script>
+</body>
+</html>
