@@ -293,7 +293,7 @@ export default function HowItWorks() {
           </Reveal>
           <Reveal delay={0.1}>
             <p className="text-white/70 text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-              KAISO watches the world's business signals, finds where there is genuine demand for a
+              KAISO Intelligence Engine watches the world's business signals, finds where there is genuine demand for a
               premium research report, and tells you exactly which ones to publish — each scored and
               stamped <strong className="text-white">PUBLISH NOW</strong>, <strong className="text-white">MONITOR</strong>, or <strong className="text-white">PASS</strong>.
             </p>
