@@ -23,5 +23,29 @@
     "opportunityScoreAtSurface": 71,
     "trendDirectionPredicted": "UNKNOWN",
     "trendChecks": []
+  },
+  {
+    "opportunityId": "semiconductor::global-ai-hardware-export-control-compliance-market",
+    "reportTitle": "Global AI Hardware Export Control Compliance Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Semiconductor",
+    "marketKeyword": "global ai hardware export control compliance market",
+    "strategicPillar": "Regulatory Trigger",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-06-30T10:11:05.549Z",
+    "opportunityScoreAtSurface": 76,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
+  },
+  {
+    "opportunityId": "construction::european-steel-import-quota-compliance-market",
+    "reportTitle": "European Steel Import Quota Compliance Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Construction",
+    "marketKeyword": "european steel import quota compliance market",
+    "strategicPillar": "Regulatory Trigger",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-06-30T10:11:05.549Z",
+    "opportunityScoreAtSurface": 75,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
   }
 ]
