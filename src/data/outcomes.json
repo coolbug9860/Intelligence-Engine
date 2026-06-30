@@ -11,5 +11,17 @@
     "opportunityScoreAtSurface": 78,
     "trendDirectionPredicted": "UNKNOWN",
     "trendChecks": []
+  },
+  {
+    "opportunityId": "energy::global-battery-energy-storage-systems-for-data-centers-market",
+    "reportTitle": "Global Battery Energy Storage Systems for Data Centers Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Energy",
+    "marketKeyword": "global battery energy storage systems for data centers market",
+    "strategicPillar": "Technology Disruption",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-06-30T07:58:53.843Z",
+    "opportunityScoreAtSurface": 71,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
   }
 ]
