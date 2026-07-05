@@ -47,5 +47,41 @@
     "opportunityScoreAtSurface": 75,
     "trendDirectionPredicted": "UNKNOWN",
     "trendChecks": []
+  },
+  {
+    "opportunityId": "energy::global-data-center-power-generation-and-grid-integration-market",
+    "reportTitle": "Global Data Center Power Generation and Grid Integration Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Energy",
+    "marketKeyword": "global data center power generation and grid integration market",
+    "strategicPillar": "Investment Surge",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-05T07:35:04.772Z",
+    "opportunityScoreAtSurface": 75,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
+  },
+  {
+    "opportunityId": "automotive::global-ev-battery-swap-stations-market",
+    "reportTitle": "Global EV Battery Swap Stations Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Automotive",
+    "marketKeyword": "global ev battery swap stations market",
+    "strategicPillar": "Technology Disruption",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-05T07:35:04.772Z",
+    "opportunityScoreAtSurface": 71,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
+  },
+  {
+    "opportunityId": "construction::global-developing-market-infrastructure-investment-market",
+    "reportTitle": "Global Developing Market Infrastructure Investment Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Construction",
+    "marketKeyword": "global developing market infrastructure investment market",
+    "strategicPillar": "Geographic Demand Shift",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-05T07:35:04.772Z",
+    "opportunityScoreAtSurface": 69,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
   }
 ]
