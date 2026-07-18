@@ -83,5 +83,53 @@
     "opportunityScoreAtSurface": 69,
     "trendDirectionPredicted": "UNKNOWN",
     "trendChecks": []
+  },
+  {
+    "opportunityId": "semiconductor::global-ai-semiconductor-market",
+    "reportTitle": "Global AI Semiconductor Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Semiconductor",
+    "marketKeyword": "global ai semiconductor market",
+    "strategicPillar": "Investment Surge",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-18T06:03:41.503Z",
+    "opportunityScoreAtSurface": 77,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
+  },
+  {
+    "opportunityId": "retail-e-commerce::global-last-mile-delivery-market",
+    "reportTitle": "Global Last Mile Delivery Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Retail & E-Commerce",
+    "marketKeyword": "global last mile delivery market",
+    "strategicPillar": "Technology Disruption",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-18T06:03:41.503Z",
+    "opportunityScoreAtSurface": 76,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
+  },
+  {
+    "opportunityId": "healthcare::global-biologics-manufacturing-market",
+    "reportTitle": "Global Biologics Manufacturing Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Healthcare",
+    "marketKeyword": "global biologics manufacturing market",
+    "strategicPillar": "Investment Surge",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-18T06:03:41.503Z",
+    "opportunityScoreAtSurface": 70,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
+  },
+  {
+    "opportunityId": "semiconductor::global-semiconductor-supply-chain-resilience-market",
+    "reportTitle": "Global Semiconductor Supply Chain Resilience Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Semiconductor",
+    "marketKeyword": "global semiconductor supply chain resilience market",
+    "strategicPillar": "Supply Chain Decoupling",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-18T06:03:41.503Z",
+    "opportunityScoreAtSurface": 74,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
   }
 ]
