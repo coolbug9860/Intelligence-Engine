@@ -131,5 +131,53 @@
     "opportunityScoreAtSurface": 74,
     "trendDirectionPredicted": "UNKNOWN",
     "trendChecks": []
+  },
+  {
+    "opportunityId": "it-telecom::global-ai-data-center-construction-market",
+    "reportTitle": "Global AI Data Center Construction Market Size, Share & Forecast, 2026-2035",
+    "vertical": "IT & Telecom",
+    "marketKeyword": "global ai data center construction market",
+    "strategicPillar": "Technology Disruption",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-24T07:43:25.932Z",
+    "opportunityScoreAtSurface": 75,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
+  },
+  {
+    "opportunityId": "fintech::global-embedded-finance-platforms-market",
+    "reportTitle": "Global Embedded Finance Platforms Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Fintech",
+    "marketKeyword": "global embedded finance platforms market",
+    "strategicPillar": "Technology Disruption",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-24T07:43:25.932Z",
+    "opportunityScoreAtSurface": 69,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
+  },
+  {
+    "opportunityId": "automotive::global-ev-battery-manufacturing-capacity-market",
+    "reportTitle": "Global EV Battery Manufacturing Capacity Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Automotive",
+    "marketKeyword": "global ev battery manufacturing capacity market",
+    "strategicPillar": "Investment Surge",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-24T07:43:25.932Z",
+    "opportunityScoreAtSurface": 68,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
+  },
+  {
+    "opportunityId": "semiconductor::global-ai-chip-manufacturing-ecosystem-market",
+    "reportTitle": "Global AI Chip Manufacturing Ecosystem Market Size, Share & Forecast, 2026-2035",
+    "vertical": "Semiconductor",
+    "marketKeyword": "global ai chip manufacturing ecosystem market",
+    "strategicPillar": "Technology Disruption",
+    "verdict": "PENDING",
+    "surfacedAt": "2026-07-24T07:43:25.932Z",
+    "opportunityScoreAtSurface": 79,
+    "trendDirectionPredicted": "UNKNOWN",
+    "trendChecks": []
   }
 ]
